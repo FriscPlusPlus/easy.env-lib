@@ -13,6 +13,8 @@ type EasyEnvDefinition interface {
 	Open(dbName string) (*Connection, error)
 	CloseDB(dbName string) error
 	SaveDB(dbName string) error
+	SaveCurrentDB() error
+	SaveAllDB() error
 
 	CreateNewDB(dbName string) (*Connection, error)
 
@@ -148,11 +150,44 @@ func (easy *EasyEnv) AddProject(projectID, path string) {
 	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
 }
 
-/*func (easy *EasyEnv) SaveDB(dbName string) error {
-	db := easy.currentConnection.db
-	for _, project := range easy.currentConnection.projects {
+func (easy *EasyEnv) SaveDB(dbName string) error {
+	connection, err := easy.getConnectionByDBname(dbName)
+
+	if err != nil {
+		return err
 	}
+
+	err = save(connection)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (easy *EasyEnv) SaveCurrentDB() error {
+	err := save(easy.currentConnection)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/*func save(connecton *Connection) error {
+	db := connecton.db
+	for _, project := range connecton.projects {
+		_, err := db.Exec("INSERT INTO projects(projectID, path) VALUES(?, ?)", project.projectID, project.path)
+
+		if err != nil {
+			return err
+		}
+
+	}
+
+	return nil
 }*/
 
 // TODO: add check everywhere for currentdb, at least one db needs to be loaded
-// TODO: remove the connection return, the instance is already in the easyenv

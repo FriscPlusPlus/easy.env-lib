@@ -22,14 +22,16 @@ type Project struct {
 	projectID string
 	path      string
 	values    []DataSet
+	new       bool
 }
 
 type Template struct {
 	templateID string
 	values     []DataSet
+	new        bool
 }
 
 type DataSet struct {
-	key   string
+	keyName   string
 	value string
 }

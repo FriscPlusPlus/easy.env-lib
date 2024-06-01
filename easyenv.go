@@ -12,21 +12,32 @@ type EasyEnvDefinition interface {
 	Load(dbName string) (*Connection, error)
 	Open(dbName string) (*Connection, error)
 	CloseDB(dbName string) error
+	SaveDB(dbName string) error
+
 	CreateNewDB(dbName string) (*Connection, error)
-	AddProject(projectID, path string) error
-	AddEnviormentToProject(projectID, key, value string) error
-	AddEnviormentToTemplate(template, key, value string) error
-	RemoveEnviormentFromProject(projectID, key, value string) error
-	RemoveEnviormentFromTemplate(projectID, key, value string) error
+
+	AddProject(projectID, path string)
+	AddTemplate(template string) error
+
+	RemoveProject(projectID, path string) error
+	RemoveTemplate(template string) error
+
+	AddEnvToProject(projectID, keyName, value string) error
+	AddEnvToTemplate(template, keyName, value string) error
+
+	RemoveEnvFromProject(projectID, keyName, value string) error
+	RemoveEnvFromTemplate(projectID, keyName, value string) error
+
 	LoadTemplate(template string) error
 	LoadAllTemplate() error
-	SaveTemplate(template string) error
-	SaveAllTemplate() error
+
 	LoadProject(projectID string) error
 	LoadAllProject() error
-	SetEnviormentFromTemplate(template, projectID string) error
-	SaveEnvForProject(projectID string) error
-	SaveEnvForAllProjects() error
+
+	LoadTemplateIntoProject(template, projectID string) error
+
+	WriteEnvInProjectFile(projectID string) error
+	WriteEnvInAllProjectsFile() error
 }
 
 func NewEasyEnv() *EasyEnv {
@@ -105,3 +116,43 @@ func (easy *EasyEnv) removeConnection(dbName string) {
 	tmpConnections = append(tmpConnections, easy.connections[foundIndex+1:]...)
 	easy.connections = tmpConnections
 }
+
+func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
+	connection, err := easy.Load(dbName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	db := connection.db
+	_, err = db.Exec("CREATE TABLE projects(projectID TEXT, path TEXT, PRIMARY KEY(projectID))")
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec("CREATE TABLE templates(templateID TEXT, keyName TEXT, value TEXT, PRIMARY KEY(templateID, keyName))")
+
+	if err != nil {
+		return nil, err
+	}
+
+	return connection, nil
+}
+
+func (easy *EasyEnv) AddProject(projectID, path string) {
+	var project Project
+	project.projectID = projectID
+	project.path = path
+	project.new = true
+	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
+}
+
+/*func (easy *EasyEnv) SaveDB(dbName string) error {
+	db := easy.currentConnection.db
+	for _, project := range easy.currentConnection.projects {
+	}
+}*/
+
+// TODO: add check everywhere for currentdb, at least one db needs to be loaded
+// TODO: remove the connection return, the instance is already in the easyenv

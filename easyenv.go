@@ -2,7 +2,6 @@ package easyenv
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -52,10 +51,57 @@ func (easy *EasyEnv) Load(dbName string) (*Connection, error) {
 }
 
 func (easy *EasyEnv) Open(dbName string) (*Connection, error) {
+	connection, err := easy.getConnectionByDBname(dbName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	easy.currentConnection = connection
+	return connection, nil
+}
+
+func (easy *EasyEnv) CloseDB(dbName string) error {
+	connection, err := easy.getConnectionByDBname(dbName)
+
+	if easy.currentConnection.dbName == dbName {
+		easy.currentConnection = nil
+	}
+
+	if err != nil {
+		return err
+	}
+
+	err = connection.db.Close()
+
+	if err != nil {
+		return err
+	}
+
+	easy.removeConnection(dbName)
+
+	return nil
+}
+
+func (easy *EasyEnv) getConnectionByDBname(dbName string) (*Connection, error) {
 	for _, connection := range easy.connections {
 		if connection.dbName == dbName {
 			return connection, nil
 		}
 	}
-	return nil, errors.New(fmt.Sprintf("No connection found for the database with the name: %s", dbName))
+	return nil, fmt.Errorf("no connection found for the database with the name: %s", dbName)
+}
+
+func (easy *EasyEnv) removeConnection(dbName string) {
+	tmpConnections := make([]*Connection, 0)
+	foundIndex := 0
+	for index, connection := range easy.connections {
+		if connection.dbName == dbName {
+			foundIndex = index
+			break
+		}
+	}
+	tmpConnections = append(tmpConnections, easy.connections[:foundIndex]...)
+	tmpConnections = append(tmpConnections, easy.connections[foundIndex+1:]...)
+	easy.connections = tmpConnections
 }

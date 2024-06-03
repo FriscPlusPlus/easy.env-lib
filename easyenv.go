@@ -133,7 +133,13 @@ func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
 		return nil, err
 	}
 
-	_, err = db.Exec("CREATE TABLE templates(templateID TEXT, keyName TEXT, value TEXT, PRIMARY KEY(templateID, keyName))")
+	_, err = db.Exec("CREATE TABLE templates(templateID INTEGER PRIMARY KEY, templateName TEXT)")
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = db.Exec("CREATE TABLE templateValues(keyName TEXT PRIMARY KEY, templateID INTEGER, value TEXT, FOREIGN KEY(templateID) REFERENCES templates(templateID))")
 
 	if err != nil {
 		return nil, err
@@ -146,7 +152,7 @@ func (easy *EasyEnv) AddProject(projectID, path string) {
 	var project Project
 	project.projectID = projectID
 	project.path = path
-	project.new = true
+	project.needSave = true
 	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
 }
 
@@ -176,18 +182,41 @@ func (easy *EasyEnv) SaveCurrentDB() error {
 	return nil
 }
 
-/*func save(connecton *Connection) error {
+func save(connecton *Connection) error {
+
+	err := saveProjects(connecton)
+
+	if err != nil {
+		return err
+	}
+
+	err = saveTemplates(connecton)
+
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func saveProjects(connecton *Connection) error {
 	db := connecton.db
 	for _, project := range connecton.projects {
-		_, err := db.Exec("INSERT INTO projects(projectID, path) VALUES(?, ?)", project.projectID, project.path)
 
-		if err != nil {
-			return err
+		if project.needSave {
+
+			_, err := db.Exec("INSERT INTO projects(projectID, path) VALUES(?, ?) ON CONFLICT(projectID) DO UPDATE SET projectID = ?, path = ?", project.projectID, project.path, project.projectID, project.path)
+
+			if err != nil {
+				return err
+			}
 		}
 
 	}
-
 	return nil
-}*/
+}
+
+func saveTemplates(connecton *Connection) error {
+	return nil
+}
 
 // TODO: add check everywhere for currentdb, at least one db needs to be loaded

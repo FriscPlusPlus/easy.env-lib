@@ -21,8 +21,8 @@ type EasyEnvDefinition interface {
 	AddProject(projectID, path string) error
 	AddTemplate(template string) error
 
-	RemoveProject(projectID, path string) error
-	RemoveTemplate(template string) error
+	RemoveProject(project Project) error
+	RemoveTemplate(template Template) error
 
 	AddEnvToProject(projectID, keyName, value string) error
 	AddEnvToTemplate(template, keyName, value string) error
@@ -179,6 +179,59 @@ func (easy *EasyEnv) AddTemplate(templateName string) error {
 	return nil
 }
 
+func (easy *EasyEnv) RemoveProject(project Project) error {
+
+	projectID := project.projectID
+
+	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	tmp := make([]Project, 0)
+	foundIndex := 0
+
+	for index, project := range easy.currentConnection.projects {
+		if project.projectID == projectID {
+			foundIndex = index
+			break
+		}
+	}
+
+	tmp = append(tmp, easy.currentConnection.projects[:foundIndex]...)
+	tmp = append(tmp, easy.currentConnection.projects[foundIndex+1:]...)
+	easy.currentConnection.projects = tmp
+	return nil
+}
+
+func (easy *EasyEnv) RemoveTemplate(template Template) error {
+
+	templateID := template.templateID
+
+	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	tmp := make([]Template, 0)
+	foundIndex := 0
+
+	for index, project := range easy.currentConnection.templates {
+		if project.templateID == templateID {
+			foundIndex = index
+			break
+		}
+	}
+
+	tmp = append(tmp, easy.currentConnection.templates[:foundIndex]...)
+	tmp = append(tmp, easy.currentConnection.templates[foundIndex+1:]...)
+	easy.currentConnection.templates = tmp
+
+	return nil
+}
+
 /*
 	Unexported methods
 */
@@ -193,7 +246,7 @@ func (easy *EasyEnv) getConnectionByDBname(dbName string) (*Connection, error) {
 }
 
 func (easy *EasyEnv) removeConnection(dbName string) {
-	tmpConnections := make([]*Connection, 0)
+	tmp := make([]*Connection, 0)
 	foundIndex := 0
 	for index, connection := range easy.connections {
 		if connection.dbName == dbName {
@@ -201,9 +254,9 @@ func (easy *EasyEnv) removeConnection(dbName string) {
 			break
 		}
 	}
-	tmpConnections = append(tmpConnections, easy.connections[:foundIndex]...)
-	tmpConnections = append(tmpConnections, easy.connections[foundIndex+1:]...)
-	easy.connections = tmpConnections
+	tmp = append(tmp, easy.connections[:foundIndex]...)
+	tmp = append(tmp, easy.connections[foundIndex+1:]...)
+	easy.connections = tmp
 }
 
 func (easy *EasyEnv) checkIfcurrentDBisSet() error {

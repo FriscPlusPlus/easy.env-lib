@@ -1,15 +1,19 @@
 package easyenv
 
+import (
+	"fmt"
+)
+
 func createTables(connection *Connection) error {
 
 	db := connection.db
-	_, err := db.Exec("CREATE TABLE projects(projectID TEXT, path TEXT, PRIMARY KEY(projectID))")
+	_, err := db.Exec("CREATE TABLE projects(projectID INTEGER PRIMARY KEY AUTOINCREMENT, projectName TEXT, path TEXT)")
 
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE templates(templateID INTEGER PRIMARY KEY, templateName TEXT)")
+	_, err = db.Exec("CREATE TABLE templates(templateID INTEGER PRIMARY KEY AUTOINCREMENT, templateName TEXT)")
 
 	if err != nil {
 		return err
@@ -20,7 +24,7 @@ func createTables(connection *Connection) error {
 	if err != nil {
 		return err
 	}
-
+	return nil
 }
 
 func save(connection *Connection) error {
@@ -36,39 +40,95 @@ func save(connection *Connection) error {
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
 func saveProjects(connection *Connection) error {
 	db := connection.db
+
+	tx, err := db.Begin()
+
+	if err != nil {
+		return err
+	}
+
 	for _, project := range connection.projects {
 
-		if project.needSave {
-
-			_, err := db.Exec("INSERT INTO projects(projectID, path) VALUES(?, ?) ON CONFLICT(projectID) DO UPDATE SET projectID = ?, path = ?", project.projectID, project.path, project.projectID, project.path)
-
+		switch project.method {
+		case "INSERT":
+			_, err := tx.Exec("INSERT INTO projects(projectName, path) VALUES(?, ?)", project.projectName, project.path)
 			if err != nil {
+				tx.Rollback()
+				return err
+			}
+		case "UPDATE":
+			_, err := tx.Exec("UPDATE projects SET projectName = ?, path = ? WHERE projectID = ?", project.projectName, project.path, project.projectID)
+			if err != nil {
+				tx.Rollback()
 				return err
 			}
 		}
 
 	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func saveTemplates(connection *Connection) error {
 	db := connection.db
+
+	tx, err := db.Begin()
+
+	if err != nil {
+		return err
+	}
+
 	for _, template := range connection.templates {
 
-		if template.needSave {
-
-			_, err := db.Exec("INSERT INTO templates(templateID, templateName) VALUES(?, ?) ON CONFLICT(templateID) DO UPDATE SET templateID = ?, templateName = ?", template.templateID, template.templateName, template.templateID, template.templateName)
-
+		switch template.method {
+		case "INSERT":
+			_, err := tx.Exec("INSERT INTO templates(templateName) VALUES(?)", template.templateName)
 			if err != nil {
+				tx.Rollback()
 				return err
 			}
+		case "UPDATE":
+			_, err := tx.Exec("UPDATE templates SET templateName = ? WHERE templateID = ?", template.templateName, template.templateID)
+			if err != nil {
+				tx.Rollback()
+				return err
+			}
+
 		}
 
 	}
+
+	err = tx.Commit()
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func removeData(connection *Connection, tableName string, parameterName string, id int) error {
+	db := connection.db
+
+	query := fmt.Sprintf("DELETE FROM %s WHERE %s = ?", tableName, parameterName)
+
+	_, err := db.Exec(query, id)
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

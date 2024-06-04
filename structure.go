@@ -19,21 +19,22 @@ type Connection struct {
 }
 
 type Project struct {
-	projectID string
-	path      string
-	values    []DataSet
-	needSave  bool
+	projectID   int
+	projectName string
+	path        string
+	values      []DataSet
+	method      string
 }
 
 type Template struct {
 	templateID   int
 	templateName string
 	values       []DataSet
-	needSave     bool
+	method       string
 }
 
 type DataSet struct {
-	keyName  string
-	value    string
-	needSave bool
+	keyName string
+	value   string
+	method  string
 }

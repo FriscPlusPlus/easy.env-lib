@@ -12,14 +12,13 @@ type EasyEnvDefinition interface {
 	Load(dbName string) (*Connection, error)
 	Open(dbName string) (*Connection, error)
 	CloseDB(dbName string) error
-	SaveDB(dbName string) error
 	SaveCurrentDB() error
 	SaveAllDB() error
 
 	CreateNewDB(dbName string) (*Connection, error)
 
-	AddProject(projectID, path string) error
-	AddTemplate(template string) error
+	AddProject(projectName, path string) error
+	AddTemplate(templateName string) error
 
 	RemoveProject(project Project) error
 	RemoveTemplate(template Template) error
@@ -112,22 +111,6 @@ func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
 	return connection, nil
 }
 
-func (easy *EasyEnv) SaveDB(dbName string) error {
-	connection, err := easy.getConnectionByDBname(dbName)
-
-	if err != nil {
-		return err
-	}
-
-	err = save(connection)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 func (easy *EasyEnv) SaveCurrentDB() error {
 
 	err := easy.checkIfcurrentDBisSet()
@@ -142,10 +125,12 @@ func (easy *EasyEnv) SaveCurrentDB() error {
 		return err
 	}
 
+	easy.resetMethodState()
+
 	return nil
 }
 
-func (easy *EasyEnv) AddProject(projectID, path string) error {
+func (easy *EasyEnv) AddProject(projectName, path string) error {
 
 	err := easy.checkIfcurrentDBisSet()
 
@@ -154,9 +139,9 @@ func (easy *EasyEnv) AddProject(projectID, path string) error {
 	}
 
 	var project Project
-	project.projectID = projectID
+	project.projectName = projectName
 	project.path = path
-	project.needSave = true
+	project.method = "INSERT"
 	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
 
 	return nil
@@ -173,17 +158,21 @@ func (easy *EasyEnv) AddTemplate(templateName string) error {
 	var template Template
 
 	template.templateName = templateName
-	template.needSave = true
+	template.method = "INSERT"
 	easy.currentConnection.templates = append(easy.currentConnection.templates, template)
 
 	return nil
 }
 
-func (easy *EasyEnv) RemoveProject(project Project) error {
-
-	projectID := project.projectID
+func (easy *EasyEnv) RemoveProject(projectID int) error {
 
 	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	err = removeData(easy.currentConnection, "projects", "projectID", projectID)
 
 	if err != nil {
 		return err
@@ -205,11 +194,15 @@ func (easy *EasyEnv) RemoveProject(project Project) error {
 	return nil
 }
 
-func (easy *EasyEnv) RemoveTemplate(template Template) error {
-
-	templateID := template.templateID
+func (easy *EasyEnv) RemoveTemplate(templateID int) error {
 
 	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	err = removeData(easy.currentConnection, "templates", "templateID", templateID)
 
 	if err != nil {
 		return err
@@ -262,8 +255,25 @@ func (easy *EasyEnv) removeConnection(dbName string) {
 func (easy *EasyEnv) checkIfcurrentDBisSet() error {
 
 	if easy.currentConnection == nil {
-		return fmt.Errorf("No database is currently open. Please open a database first using 'Open(path/to/sqlitefile)' before making any other calls.")
+		return fmt.Errorf("no database is currently open. Please open a database first using 'Open(path/to/sqlitefile)' before making any other calls")
 	}
 
 	return nil
+}
+
+func (easy *EasyEnv) resetMethodState() {
+	projects := easy.currentConnection.projects
+	templates := easy.currentConnection.templates
+
+	for i := range projects {
+		if len(projects[i].method) > 0 {
+			projects[i].method = ""
+		}
+	}
+
+	for i := range templates {
+		if len(templates[i].method) > 0 {
+			templates[i].method = ""
+		}
+	}
 }

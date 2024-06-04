@@ -57,5 +57,18 @@ func saveProjects(connection *Connection) error {
 }
 
 func saveTemplates(connection *Connection) error {
+	db := connection.db
+	for _, template := range connection.templates {
+
+		if template.needSave {
+
+			_, err := db.Exec("INSERT INTO templates(templateID, templateName) VALUES(?, ?) ON CONFLICT(templateID) DO UPDATE SET templateID = ?, templateName = ?", template.templateID, template.templateName, template.templateID, template.templateName)
+
+			if err != nil {
+				return err
+			}
+		}
+
+	}
 	return nil
 }

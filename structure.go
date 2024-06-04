@@ -26,6 +26,7 @@ type Project struct {
 }
 
 type Template struct {
+	templateID   int
 	templateName string
 	values       []DataSet
 	needSave     bool

@@ -18,7 +18,7 @@ type EasyEnvDefinition interface {
 
 	CreateNewDB(dbName string) (*Connection, error)
 
-	AddProject(projectID, path string)
+	AddProject(projectID, path string) error
 	AddTemplate(template string) error
 
 	RemoveProject(projectID, path string) error
@@ -77,10 +77,6 @@ func (easy *EasyEnv) Open(dbName string) (*Connection, error) {
 func (easy *EasyEnv) CloseDB(dbName string) error {
 	connection, err := easy.getConnectionByDBname(dbName)
 
-	if easy.currentConnection.dbName == dbName {
-		easy.currentConnection = nil
-	}
-
 	if err != nil {
 		return err
 	}
@@ -93,8 +89,101 @@ func (easy *EasyEnv) CloseDB(dbName string) error {
 
 	easy.removeConnection(dbName)
 
+	if easy.currentConnection.dbName == dbName {
+		easy.currentConnection = nil
+	}
+
 	return nil
 }
+
+func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
+	connection, err := easy.Load(dbName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	err = createTables(connection)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return connection, nil
+}
+
+func (easy *EasyEnv) SaveDB(dbName string) error {
+	connection, err := easy.getConnectionByDBname(dbName)
+
+	if err != nil {
+		return err
+	}
+
+	err = save(connection)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (easy *EasyEnv) SaveCurrentDB() error {
+
+	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	err = save(easy.currentConnection)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (easy *EasyEnv) AddProject(projectID, path string) error {
+
+	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	var project Project
+	project.projectID = projectID
+	project.path = path
+	project.needSave = true
+	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
+
+	return nil
+}
+
+func (easy *EasyEnv) AddTemplate(templateName string) error {
+
+	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	var template Template
+
+	template.templateName = templateName
+	template.needSave = true
+	easy.currentConnection.templates = append(easy.currentConnection.templates, template)
+
+	return nil
+}
+
+// TODO: add check everywhere for currentdb, at least one db needs to be loaded
+
+/*
+	Unexported methods
+*/
 
 func (easy *EasyEnv) getConnectionByDBname(dbName string) (*Connection, error) {
 	for _, connection := range easy.connections {
@@ -119,104 +208,11 @@ func (easy *EasyEnv) removeConnection(dbName string) {
 	easy.connections = tmpConnections
 }
 
-func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
-	connection, err := easy.Load(dbName)
+func (easy *EasyEnv) checkIfcurrentDBisSet() error {
 
-	if err != nil {
-		return nil, err
-	}
-
-	db := connection.db
-	_, err = db.Exec("CREATE TABLE projects(projectID TEXT, path TEXT, PRIMARY KEY(projectID))")
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = db.Exec("CREATE TABLE templates(templateID INTEGER PRIMARY KEY, templateName TEXT)")
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = db.Exec("CREATE TABLE templateValues(keyName TEXT PRIMARY KEY, templateID INTEGER, value TEXT, FOREIGN KEY(templateID) REFERENCES templates(templateID))")
-
-	if err != nil {
-		return nil, err
-	}
-
-	return connection, nil
-}
-
-func (easy *EasyEnv) AddProject(projectID, path string) {
-	var project Project
-	project.projectID = projectID
-	project.path = path
-	project.needSave = true
-	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
-}
-
-func (easy *EasyEnv) SaveDB(dbName string) error {
-	connection, err := easy.getConnectionByDBname(dbName)
-
-	if err != nil {
-		return err
-	}
-
-	err = save(connection)
-
-	if err != nil {
-		return err
+	if easy.currentConnection == nil {
+		return fmt.Errorf("No open database was found, please open a databse first `Open(path/to/sqlitefile)` before doing any operation")
 	}
 
 	return nil
 }
-
-func (easy *EasyEnv) SaveCurrentDB() error {
-	err := save(easy.currentConnection)
-
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func save(connecton *Connection) error {
-
-	err := saveProjects(connecton)
-
-	if err != nil {
-		return err
-	}
-
-	err = saveTemplates(connecton)
-
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func saveProjects(connecton *Connection) error {
-	db := connecton.db
-	for _, project := range connecton.projects {
-
-		if project.needSave {
-
-			_, err := db.Exec("INSERT INTO projects(projectID, path) VALUES(?, ?) ON CONFLICT(projectID) DO UPDATE SET projectID = ?, path = ?", project.projectID, project.path, project.projectID, project.path)
-
-			if err != nil {
-				return err
-			}
-		}
-
-	}
-	return nil
-}
-
-func saveTemplates(connecton *Connection) error {
-	return nil
-}
-
-// TODO: add check everywhere for currentdb, at least one db needs to be loaded

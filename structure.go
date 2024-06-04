@@ -27,8 +27,8 @@ type Project struct {
 
 type Template struct {
 	templateName string
-	values     []DataSet
-	needSave   bool
+	values       []DataSet
+	needSave     bool
 }
 
 type DataSet struct {

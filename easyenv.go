@@ -179,8 +179,6 @@ func (easy *EasyEnv) AddTemplate(templateName string) error {
 	return nil
 }
 
-// TODO: add check everywhere for currentdb, at least one db needs to be loaded
-
 /*
 	Unexported methods
 */
@@ -211,7 +209,7 @@ func (easy *EasyEnv) removeConnection(dbName string) {
 func (easy *EasyEnv) checkIfcurrentDBisSet() error {
 
 	if easy.currentConnection == nil {
-		return fmt.Errorf("No open database was found, please open a databse first `Open(path/to/sqlitefile)` before doing any operation")
+		return fmt.Errorf("No database is currently open. Please open a database first using 'Open(path/to/sqlitefile)' before making any other calls.")
 	}
 
 	return nil

@@ -1,7 +1,9 @@
 package easyenv
 
 import (
+	"errors"
 	"fmt"
+	"sync"
 )
 
 func createTables(connection *Connection) error {
@@ -28,95 +30,115 @@ func createTables(connection *Connection) error {
 }
 
 func save(connection *Connection) error {
+	var projectError error
+	var templateError error
+	var err error
+	var errorText string
 
-	err := saveProjects(connection)
+	wg := new(sync.WaitGroup)
 
-	if err != nil {
-		return err
+	wg.Add(1)
+	wg.Add(1)
+
+	go saveProjects(connection, &projectError, wg)
+	go saveTemplates(connection, &templateError, wg)
+
+	wg.Wait()
+
+	if projectError != nil {
+		errorText = fmt.Sprintf("Error in projects sql operations, details: %s\n", projectError.Error())
 	}
 
-	err = saveTemplates(connection)
-
-	if err != nil {
-		return err
+	if templateError != nil {
+		errorText = fmt.Sprintf("%sError in templates sql operations, details: %s\n", errorText, templateError.Error())
 	}
 
-	return nil
+	if len(errorText) > 0 {
+		err = errors.New(errorText)
+	}
+
+	return err
 }
 
-func saveProjects(connection *Connection) error {
+func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup) {
+
+	defer wg.Done()
 	db := connection.db
 
 	tx, err := db.Begin()
 
 	if err != nil {
-		return err
+		*errorResult = err
+		return
 	}
-
 	for _, project := range connection.projects {
 
 		switch project.method {
 		case "INSERT":
-			_, err := tx.Exec("INSERT INTO projects(projectName, path) VALUES(?, ?)", project.projectName, project.path)
+			_, err := tx.Exec("INSERT INTO projects(projectName, path) VALUES(?, ?, ?)", project.projectName, project.path)
 			if err != nil {
 				tx.Rollback()
-				return err
+				*errorResult = err
+				return
 			}
 		case "UPDATE":
 			_, err := tx.Exec("UPDATE projects SET projectName = ?, path = ? WHERE projectID = ?", project.projectName, project.path, project.projectID)
 			if err != nil {
 				tx.Rollback()
-				return err
+				*errorResult = err
+				return
 			}
+
+		}
+
+		err = tx.Commit()
+		if err != nil {
+			*errorResult = err
+			return
 		}
 
 	}
 
-	err = tx.Commit()
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
-func saveTemplates(connection *Connection) error {
+func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	db := connection.db
 
 	tx, err := db.Begin()
 
 	if err != nil {
-		return err
+		*errorResult = err
+		return
 	}
-
 	for _, template := range connection.templates {
 
 		switch template.method {
 		case "INSERT":
-			_, err := tx.Exec("INSERT INTO templates(templateName) VALUES(?)", template.templateName)
+			_, err := tx.Exec("INSERT INTO templates(templateName) VALUES(?, ?)", template.templateName)
 			if err != nil {
 				tx.Rollback()
-				return err
+				*errorResult = err
+				return
 			}
 		case "UPDATE":
 			_, err := tx.Exec("UPDATE templates SET templateName = ? WHERE templateID = ?", template.templateName, template.templateID)
 			if err != nil {
 				tx.Rollback()
-				return err
+				*errorResult = err
+				return
 			}
 
 		}
 
+		err = tx.Commit()
+
+		if err != nil {
+			*errorResult = err
+		}
 	}
 
-	err = tx.Commit()
-
-	if err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func removeData(connection *Connection, tableName string, parameterName string, id int) error {

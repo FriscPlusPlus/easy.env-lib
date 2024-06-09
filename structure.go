@@ -22,19 +22,26 @@ type Project struct {
 	projectID   int
 	projectName string
 	path        string
-	values      []DataSet
+	values      []ProjectDataSet
 	method      string
 }
 
 type Template struct {
 	templateID   int
 	templateName string
-	values       []DataSet
+	values       []TemplateDataSet
 	method       string
 }
 
-type DataSet struct {
+type ProjectDataSet struct {
 	keyName string
 	value   string
 	method  string
+}
+
+type TemplateDataSet struct {
+	templateID int
+	keyName    string
+	value      string
+	method     string
 }

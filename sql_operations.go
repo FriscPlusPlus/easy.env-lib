@@ -30,12 +30,12 @@ func createTables(connection *Connection) error {
 }
 
 func save(connection *Connection) error {
-	var projectError error
-	var templateError error
 	var err error
 	var errorText string
-
 	wg := new(sync.WaitGroup)
+
+	var projectError error
+	var templateError error
 
 	wg.Add(1)
 	wg.Add(1)
@@ -45,12 +45,24 @@ func save(connection *Connection) error {
 
 	wg.Wait()
 
+	var templateEnvError error
+
+	wg.Add(1)
+
+	go saveEnvTemplates(connection, &templateEnvError, wg)
+
+	wg.Wait()
+
 	if projectError != nil {
-		errorText = fmt.Sprintf("Error in projects sql operations, details: %s\n", projectError.Error())
+		errorText = fmt.Sprintf("An error occurred while saving the project. Details: %s\n", projectError.Error())
 	}
 
 	if templateError != nil {
-		errorText = fmt.Sprintf("%sError in templates sql operations, details: %s\n", errorText, templateError.Error())
+		errorText = fmt.Sprintf("%sAn error occurred while saving the templates. Details: %s\n", errorText, templateError.Error())
+	}
+
+	if templateEnvError != nil {
+		errorText = fmt.Sprintf("%sAn error occurred while saving the env in templates. details: %s\n", errorText, templateEnvError.Error())
 	}
 
 	if len(errorText) > 0 {
@@ -75,7 +87,7 @@ func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup
 
 		switch project.method {
 		case "INSERT":
-			_, err := tx.Exec("INSERT INTO projects(projectName, path) VALUES(?, ?, ?)", project.projectName, project.path)
+			_, err := tx.Exec("INSERT INTO projects(projectName, path) VALUES(?, ?)", project.projectName, project.path)
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err
@@ -90,15 +102,13 @@ func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup
 			}
 
 		}
-
-		err = tx.Commit()
-		if err != nil {
-			*errorResult = err
-			return
-		}
-
 	}
 
+	err = tx.Commit()
+	if err != nil {
+		*errorResult = err
+		return
+	}
 }
 
 func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGroup) {
@@ -116,7 +126,7 @@ func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGrou
 
 		switch template.method {
 		case "INSERT":
-			_, err := tx.Exec("INSERT INTO templates(templateName) VALUES(?, ?)", template.templateName)
+			_, err := tx.Exec("INSERT INTO templates(templateName) VALUES(?)", template.templateName)
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err
@@ -131,14 +141,56 @@ func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGrou
 			}
 
 		}
+	}
 
-		err = tx.Commit()
+	err = tx.Commit()
 
-		if err != nil {
-			*errorResult = err
+	if err != nil {
+		*errorResult = err
+	}
+}
+
+func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitGroup) {
+	defer wg.Done()
+
+	db := connection.db
+
+	tx, err := db.Begin()
+
+	if err != nil {
+		*errorResult = err
+		return
+	}
+
+	for _, template := range connection.templates {
+		for _, templateEnv := range template.values {
+
+			switch templateEnv.method {
+			case "INSERT":
+				_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?)", templateEnv.keyName, templateEnv.templateID, templateEnv.value)
+				if err != nil {
+					tx.Rollback()
+					*errorResult = err
+					return
+				}
+			case "UPDATE":
+				_, err := tx.Exec("UPDATE templateValues SET value = ? WHERE templateID = ? AND keyName = ?", templateEnv.value, templateEnv.templateID, templateEnv.keyName)
+				if err != nil {
+					tx.Rollback()
+					*errorResult = err
+					return
+				}
+
+			}
+
 		}
 	}
 
+	err = tx.Commit()
+
+	if err != nil {
+		*errorResult = err
+	}
 }
 
 func removeData(connection *Connection, tableName string, parameterName string, id int) error {

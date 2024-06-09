@@ -12,8 +12,8 @@ type EasyEnvDefinition interface {
 	Load(dbName string) (*Connection, error)
 	Open(dbName string) (*Connection, error)
 	CloseDB(dbName string) error
-	SaveCurrentDB() error
-	SaveAllDB() error
+	SaveCurrentDB() error // this will save the data from the buffer to the current db and write for each project env  file
+	SaveAllDB() error     // this will save the data from the buffer to the all the open db and write for each project env  file
 
 	CreateNewDB(dbName string) (*Connection, error)
 
@@ -29,11 +29,9 @@ type EasyEnvDefinition interface {
 	RemoveEnvFromProject(projectID, keyName, value string) error
 	RemoveEnvFromTemplate(projectID, keyName, value string) error
 
-	LoadTemplate(template string) error
-	LoadAllTemplate() error
+	LoadTemplates() error
 
-	LoadProject(projectID string) error
-	LoadAllProject() error
+	LoadProjects() error
 
 	LoadTemplateIntoProject(template, projectID string) error
 
@@ -226,7 +224,7 @@ func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error
 		return err
 	}
 
-	env := DataSet{
+	env := ProjectDataSet{
 		keyName: keyName,
 		value:   value,
 		method:  "INSERT",
@@ -247,10 +245,11 @@ func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) err
 		return err
 	}
 
-	env := DataSet{
-		keyName: keyName,
-		value:   value,
-		method:  "INSERT",
+	env := TemplateDataSet{
+		templateID: templateID,
+		keyName:    keyName,
+		value:      value,
+		method:     "INSERT",
 	}
 
 	templates := easy.currentConnection.templates

@@ -179,14 +179,7 @@ func (easy *EasyEnv) RemoveProject(projectID int) error {
 	}
 
 	tmp := make([]Project, 0)
-	foundIndex := 0
-
-	for index, project := range easy.currentConnection.projects {
-		if project.projectID == projectID {
-			foundIndex = index
-			break
-		}
-	}
+	foundIndex, _ := easy.getProjectByID(projectID)
 
 	tmp = append(tmp, easy.currentConnection.projects[:foundIndex]...)
 	tmp = append(tmp, easy.currentConnection.projects[foundIndex+1:]...)
@@ -221,6 +214,49 @@ func (easy *EasyEnv) RemoveTemplate(templateID int) error {
 	tmp = append(tmp, easy.currentConnection.templates[:foundIndex]...)
 	tmp = append(tmp, easy.currentConnection.templates[foundIndex+1:]...)
 	easy.currentConnection.templates = tmp
+
+	return nil
+}
+
+func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error {
+
+	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	env := DataSet{
+		keyName: keyName,
+		value:   value,
+		method:  "INSERT",
+	}
+
+	projects := easy.currentConnection.projects
+	index, _ := easy.getProjectByID(projectID)
+
+	projects[index].values = append(projects[index].values, env)
+
+	return nil
+}
+
+func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) error {
+	err := easy.checkIfcurrentDBisSet()
+
+	if err != nil {
+		return err
+	}
+
+	env := DataSet{
+		keyName: keyName,
+		value:   value,
+		method:  "INSERT",
+	}
+
+	templates := easy.currentConnection.templates
+	index, _ := easy.getTemplateByID(templateID)
+
+	templates[index].values = append(templates[index].values, env)
 
 	return nil
 }
@@ -276,4 +312,30 @@ func (easy *EasyEnv) resetMethodState() {
 			templates[i].method = ""
 		}
 	}
+}
+
+func (easy *EasyEnv) getProjectByID(projectID int) (int, Project) {
+	foundIndex := 0
+	var foundProject Project
+	for index, project := range easy.currentConnection.projects {
+		if project.projectID == projectID {
+			foundIndex = index
+			foundProject = project
+			break
+		}
+	}
+	return foundIndex, foundProject
+}
+
+func (easy *EasyEnv) getTemplateByID(templateID int) (int, Template) {
+	foundIndex := 0
+	var foundTemplate Template
+	for index, template := range easy.currentConnection.templates {
+		if template.templateID == templateID {
+			foundIndex = index
+			foundTemplate = template
+			break
+		}
+	}
+	return foundIndex, foundTemplate
 }

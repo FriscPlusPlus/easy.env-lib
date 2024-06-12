@@ -29,7 +29,7 @@ func createTables(connection *Connection) error {
 	return nil
 }
 
-func save(connection *Connection) error {
+func saveDataInDB(connection *Connection) error {
 	var err error
 	var errorText string
 	wg := new(sync.WaitGroup)

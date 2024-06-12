@@ -12,7 +12,7 @@ type EasyEnv struct {
 }
 
 type Connection struct {
-	dbName    string     // db path
+	dbName    string     // db absolute path
 	db        *sql.DB    // db instance
 	projects  []Project  // projects and the associated env data
 	templates []Template // templates of all the envs
@@ -21,7 +21,7 @@ type Connection struct {
 type Project struct {
 	projectID   int
 	projectName string
-	path        string
+	path        string // abosule path of the project containing the .env file
 	values      []ProjectDataSet
 	method      string
 }
@@ -36,7 +36,6 @@ type Template struct {
 type ProjectDataSet struct {
 	keyName string
 	value   string
-	method  string
 }
 
 type TemplateDataSet struct {

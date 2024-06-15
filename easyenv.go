@@ -2,10 +2,12 @@ package easyenv
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"path"
+
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type EasyEnvDefinition interface {
@@ -27,7 +29,7 @@ type EasyEnvDefinition interface {
 	AddEnvToProject(projectID, keyName, value string) error
 	AddEnvToTemplate(template, keyName, value string) error
 
-	RemoveEnvFromProject(projectID, keyName, value string) error
+	RemoveEnvFromProject(projectID, keyName string) error
 	RemoveEnvFromTemplate(projectID, keyName, value string) error
 
 	LoadTemplates() error
@@ -109,7 +111,7 @@ func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
 
 func (easy *EasyEnv) SaveCurrentDB() error {
 
-	err := easy.checkIfcurrentDBisSet()
+	err := easy.IsCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -130,7 +132,7 @@ func (easy *EasyEnv) SaveCurrentDB() error {
 
 func (easy *EasyEnv) AddProject(projectName, path string) error {
 
-	err := easy.checkIfcurrentDBisSet()
+	err := easy.IsCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -147,7 +149,7 @@ func (easy *EasyEnv) AddProject(projectName, path string) error {
 
 func (easy *EasyEnv) AddTemplate(templateName string) error {
 
-	err := easy.checkIfcurrentDBisSet()
+	err := easy.IsCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -164,7 +166,7 @@ func (easy *EasyEnv) AddTemplate(templateName string) error {
 
 func (easy *EasyEnv) RemoveProject(projectID int) error {
 
-	err := easy.checkIfcurrentDBisSet()
+	err := easy.IsCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -177,7 +179,11 @@ func (easy *EasyEnv) RemoveProject(projectID int) error {
 	}
 
 	tmp := make([]Project, 0)
-	foundIndex, _ := easy.getProjectByID(projectID)
+	foundIndex, _, err := easy.getProjectByID(projectID)
+
+	if err != nil {
+		return err
+	}
 
 	tmp = append(tmp, easy.currentConnection.projects[:foundIndex]...)
 	tmp = append(tmp, easy.currentConnection.projects[foundIndex+1:]...)
@@ -187,7 +193,7 @@ func (easy *EasyEnv) RemoveProject(projectID int) error {
 
 func (easy *EasyEnv) RemoveTemplate(templateID int) error {
 
-	err := easy.checkIfcurrentDBisSet()
+	err := easy.IsCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -218,7 +224,7 @@ func (easy *EasyEnv) RemoveTemplate(templateID int) error {
 
 func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error {
 
-	err := easy.checkIfcurrentDBisSet()
+	err := easy.IsCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -230,7 +236,11 @@ func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error
 	}
 
 	projects := easy.currentConnection.projects
-	index, _ := easy.getProjectByID(projectID)
+	index, _, err := easy.getProjectByID(projectID)
+
+	if err != nil {
+		return err
+	}
 
 	projects[index].values = append(projects[index].values, env)
 
@@ -238,7 +248,7 @@ func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error
 }
 
 func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) error {
-	err := easy.checkIfcurrentDBisSet()
+	err := easy.IsCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -252,9 +262,42 @@ func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) err
 	}
 
 	templates := easy.currentConnection.templates
-	index, _ := easy.getTemplateByID(templateID)
+	index, _, err := easy.getTemplateByID(templateID)
+
+	if err != nil {
+		return err
+	}
 
 	templates[index].values = append(templates[index].values, env)
+
+	return nil
+}
+
+func (easy *EasyEnv) RemoveEnvFromProject(projectID int, keyName string) error {
+	err := easy.IsCurrentDBSet()
+
+	if err != nil {
+		return err
+	}
+
+	projectIndex, project, err := easy.getProjectByID(projectID)
+
+	if err != nil {
+		return err
+	}
+
+	tmp := make([]ProjectDataSet, 0)
+	foundIndex := 0
+	for index, env := range project.values {
+		if env.keyName == keyName {
+			foundIndex = index
+			break
+		}
+	}
+	tmp = append(tmp, project.values[:foundIndex]...)
+	tmp = append(tmp, project.values[foundIndex+1:]...)
+
+	easy.currentConnection.projects[projectIndex].values = tmp
 
 	return nil
 }
@@ -286,7 +329,7 @@ func (easy *EasyEnv) removeConnection(dbName string) {
 	easy.connections = tmp
 }
 
-func (easy *EasyEnv) checkIfcurrentDBisSet() error {
+func (easy *EasyEnv) IsCurrentDBSet() error {
 
 	if easy.currentConnection == nil {
 		return fmt.Errorf("no database is currently open. Please open a database first using 'Open(path/to/sqlitefile)' before making any other calls")
@@ -312,30 +355,30 @@ func (easy *EasyEnv) resetMethodState() {
 	}
 }
 
-func (easy *EasyEnv) getProjectByID(projectID int) (int, Project) {
+func (easy *EasyEnv) getProjectByID(projectID int) (int, Project, error) {
 	foundIndex := 0
 	var foundProject Project
 	for index, project := range easy.currentConnection.projects {
 		if project.projectID == projectID {
 			foundIndex = index
 			foundProject = project
-			break
+			return foundIndex, foundProject, nil
 		}
 	}
-	return foundIndex, foundProject
+	return foundIndex, foundProject, fmt.Errorf("No project found with ID %d. Please check the ID and try again.", projectID)
 }
 
-func (easy *EasyEnv) getTemplateByID(templateID int) (int, Template) {
+func (easy *EasyEnv) getTemplateByID(templateID int) (int, Template, error) {
 	foundIndex := 0
 	var foundTemplate Template
 	for index, template := range easy.currentConnection.templates {
 		if template.templateID == templateID {
 			foundIndex = index
 			foundTemplate = template
-			break
+			return foundIndex, foundTemplate, nil
 		}
 	}
-	return foundIndex, foundTemplate
+	return 0, foundTemplate, fmt.Errorf("No template found with ID %d. Please verify the ID and try again.", templateID)
 }
 
 func saveEnvInFile(connection *Connection) error {
@@ -347,7 +390,7 @@ func saveEnvInFile(connection *Connection) error {
 		envString := createEnvString(project.values)
 
 		err = os.WriteFile(envPath, []byte(envString), 0644)
-		
+
 		if err != nil {
 			return err
 		}

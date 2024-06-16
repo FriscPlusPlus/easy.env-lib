@@ -3,10 +3,10 @@ package easyenv
 import (
 	"database/sql"
 	"fmt"
+	"github.com/google/uuid"
+	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"path"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
 type EasyEnvDefinition interface {
@@ -19,18 +19,18 @@ type EasyEnvDefinition interface {
 
 	CreateNewDB(dbName string) (*Connection, error)
 
-	AddProject(projectName, path string) error
-	AddTemplate(templateName string) error
+	AddProject(projectName, path string) error // todo: should return the current added project
+	AddTemplate(templateName string) error // todo: should return the current added project
 
 	RemoveProject(project Project) error
 	RemoveTemplate(template Template) error
 
-	AddEnvToProject(projectID, keyName, value string) error
+	AddEnvToProject(projectID, keyName, value string) error 
 	AddEnvToTemplate(template, keyName, value string) error
 
 	RemoveEnvFromProject(projectID, keyName string) error
 	RemoveEnvFromTemplate(projectID, keyName, value string) error
-
+// TODO: Get template by id, get project by id, get all projects, get all templates, get env by project id/templateid and keyname, get all envs
 	LoadTemplates() error
 
 	LoadProjects() error
@@ -124,6 +124,10 @@ func (easy *EasyEnv) SaveCurrentDB() error {
 
 	err = saveEnvInFile(easy.currentConnection)
 
+	if err != nil {
+		return err
+	}
+
 	easy.resetMethodState()
 
 	return nil
@@ -138,6 +142,7 @@ func (easy *EasyEnv) AddProject(projectName, path string) error {
 	}
 
 	var project Project
+	project.projectID = uuid.NewString()
 	project.projectName = projectName
 	project.path = path
 	project.method = "INSERT"
@@ -155,7 +160,7 @@ func (easy *EasyEnv) AddTemplate(templateName string) error {
 	}
 
 	var template Template
-
+	template.templateID = uuid.NewString()
 	template.templateName = templateName
 	template.method = "INSERT"
 	easy.currentConnection.templates = append(easy.currentConnection.templates, template)
@@ -163,7 +168,7 @@ func (easy *EasyEnv) AddTemplate(templateName string) error {
 	return nil
 }
 
-func (easy *EasyEnv) RemoveProject(projectID int) error {
+func (easy *EasyEnv) RemoveProject(projectID string) error {
 
 	err := easy.isCurrentDBSet()
 
@@ -190,7 +195,7 @@ func (easy *EasyEnv) RemoveProject(projectID int) error {
 	return nil
 }
 
-func (easy *EasyEnv) RemoveTemplate(templateID int) error {
+func (easy *EasyEnv) RemoveTemplate(templateID string) error {
 
 	err := easy.isCurrentDBSet()
 
@@ -221,7 +226,7 @@ func (easy *EasyEnv) RemoveTemplate(templateID int) error {
 	return nil
 }
 
-func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error {
+func (easy *EasyEnv) AddEnvToProject(projectID string, keyName, value string) error {
 
 	err := easy.isCurrentDBSet()
 
@@ -246,7 +251,7 @@ func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error
 	return nil
 }
 
-func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) error {
+func (easy *EasyEnv) AddEnvToTemplate(templateID string, keyName, value string) error {
 	err := easy.isCurrentDBSet()
 
 	if err != nil {
@@ -272,7 +277,7 @@ func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) err
 	return nil
 }
 
-func (easy *EasyEnv) RemoveEnvFromProject(projectID int, keyName string) error {
+func (easy *EasyEnv) RemoveEnvFromProject(projectID string, keyName string) error {
 	err := easy.isCurrentDBSet()
 
 	if err != nil {
@@ -301,7 +306,7 @@ func (easy *EasyEnv) RemoveEnvFromProject(projectID int, keyName string) error {
 	return nil
 }
 
-func (easy *EasyEnv) RemoveEnvFromTemplate(templateID int, keyName string) error {
+func (easy *EasyEnv) RemoveEnvFromTemplate(templateID string, keyName string) error {
 
 	err := easy.isCurrentDBSet()
 
@@ -387,10 +392,17 @@ func (easy *EasyEnv) resetMethodState() {
 		if len(templates[i].method) > 0 {
 			templates[i].method = ""
 		}
+
+		for x := range templates[i].values {
+			if len(templates[i].values[x].method) > 0 {
+				templates[i].values[x].method = ""
+			}
+		}
 	}
+
 }
 
-func (easy *EasyEnv) getProjectByID(projectID int) (int, Project, error) {
+func (easy *EasyEnv) getProjectByID(projectID string) (int, Project, error) {
 	foundIndex := 0
 	var foundProject Project
 	for index, project := range easy.currentConnection.projects {
@@ -400,10 +412,10 @@ func (easy *EasyEnv) getProjectByID(projectID int) (int, Project, error) {
 			return foundIndex, foundProject, nil
 		}
 	}
-	return foundIndex, foundProject, fmt.Errorf("No project found with ID %d. Please check the ID and try again.", projectID)
+	return foundIndex, foundProject, fmt.Errorf("no project found with ID %s. Please check the ID and try again", projectID)
 }
 
-func (easy *EasyEnv) getTemplateByID(templateID int) (int, Template, error) {
+func (easy *EasyEnv) getTemplateByID(templateID string) (int, Template, error) {
 	foundIndex := 0
 	var foundTemplate Template
 	for index, template := range easy.currentConnection.templates {
@@ -413,7 +425,7 @@ func (easy *EasyEnv) getTemplateByID(templateID int) (int, Template, error) {
 			return foundIndex, foundTemplate, nil
 		}
 	}
-	return 0, foundTemplate, fmt.Errorf("No template found with ID %d. Please verify the ID and try again.", templateID)
+	return 0, foundTemplate, fmt.Errorf("no template found with ID %s. Please verify the ID and try again", templateID)
 }
 
 func saveEnvInFile(connection *Connection) error {

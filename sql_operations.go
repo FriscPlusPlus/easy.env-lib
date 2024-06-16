@@ -9,19 +9,19 @@ import (
 func createTables(connection *Connection) error {
 
 	db := connection.db
-	_, err := db.Exec("CREATE TABLE projects(projectID INTEGER PRIMARY KEY AUTOINCREMENT, projectName TEXT, path TEXT)")
+	_, err := db.Exec("CREATE TABLE projects(projectID TEXT PRIMARY KEY, projectName TEXT, path TEXT)")
 
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE templates(templateID INTEGER PRIMARY KEY AUTOINCREMENT, templateName TEXT)")
+	_, err = db.Exec("CREATE TABLE templates(templateID TEXT PRIMARY KEY, templateName TEXT)")
 
 	if err != nil {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE templateValues(keyName TEXT PRIMARY KEY, templateID INTEGER, value TEXT, FOREIGN KEY(templateID) REFERENCES templates(templateID))")
+	_, err = db.Exec("CREATE TABLE templateValues(keyName TEXT PRIMARY KEY, templateID stringEGER, value TEXT, FOREIGN KEY(templateID) REFERENCES templates(templateID))")
 
 	if err != nil {
 		return err
@@ -87,7 +87,7 @@ func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup
 
 		switch project.method {
 		case "INSERT":
-			_, err := tx.Exec("INSERT INTO projects(projectName, path) VALUES(?, ?)", project.projectName, project.path)
+			_, err := tx.Exec("INSERT INTO projects(projectID, projectName, path) VALUES(?, ?, ?)", project.projectID, project.projectName, project.path)
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err
@@ -126,7 +126,7 @@ func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGrou
 
 		switch template.method {
 		case "INSERT":
-			_, err := tx.Exec("INSERT INTO templates(templateName) VALUES(?)", template.templateName)
+			_, err := tx.Exec("INSERT INTO templates(templateID, templateName) VALUES(?, ?)", template.templateID, template.templateName)
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err
@@ -193,7 +193,7 @@ func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitG
 	}
 }
 
-func removeData(connection *Connection, tableName string, parameterName string, id int) error {
+func removeData(connection *Connection, tableName string, parameterName string, id string) error {
 	db := connection.db
 
 	query := fmt.Sprintf("DELETE FROM %s WHERE %s = ?", tableName, parameterName)
@@ -207,7 +207,7 @@ func removeData(connection *Connection, tableName string, parameterName string, 
 	return nil
 }
 
-func removeTemplateEnvData(connection *Connection, templateID int, keyName string) error {
+func removeTemplateEnvData(connection *Connection, templateID string, keyName string) error {
 	db := connection.db
 
 	_, err := db.Exec("DELETE FROM templateValues WHERE templateID = ? AND keyName = ?", templateID, keyName)

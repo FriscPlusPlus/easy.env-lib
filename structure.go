@@ -19,7 +19,7 @@ type Connection struct {
 }
 
 type Project struct {
-	projectID   int
+	projectID   string
 	projectName string
 	path        string // abosule path of the project containing the .env file
 	values      []ProjectDataSet
@@ -27,7 +27,7 @@ type Project struct {
 }
 
 type Template struct {
-	templateID   int
+	templateID   string
 	templateName string
 	values       []TemplateDataSet
 	method       string
@@ -39,7 +39,7 @@ type ProjectDataSet struct {
 }
 
 type TemplateDataSet struct {
-	templateID int
+	templateID string
 	keyName    string
 	value      string
 	method     string

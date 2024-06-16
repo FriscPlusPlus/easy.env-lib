@@ -19,18 +19,18 @@ type EasyEnvDefinition interface {
 
 	CreateNewDB(dbName string) (*Connection, error)
 
-	AddProject(projectName, path string) error // todo: should return the current added project
-	AddTemplate(templateName string) error // todo: should return the current added project
+	AddProject(projectName, path string) error 
+	AddTemplate(templateName string) error   
 
 	RemoveProject(project Project) error
 	RemoveTemplate(template Template) error
 
-	AddEnvToProject(projectID, keyName, value string) error 
+	AddEnvToProject(projectID, keyName, value string) error
 	AddEnvToTemplate(template, keyName, value string) error
 
 	RemoveEnvFromProject(projectID, keyName string) error
 	RemoveEnvFromTemplate(projectID, keyName, value string) error
-// TODO: Get template by id, get project by id, get all projects, get all templates, get env by project id/templateid and keyname, get all envs
+	// TODO: Get template by id, get project by id, get all projects, get all templates, get env by project id/templateid and keyname, get all envs
 	LoadTemplates() error
 
 	LoadProjects() error
@@ -133,39 +133,37 @@ func (easy *EasyEnv) SaveCurrentDB() error {
 	return nil
 }
 
-func (easy *EasyEnv) AddProject(projectName, path string) error {
-
+func (easy *EasyEnv) AddProject(projectName, path string) (Project, error) {
+	var project Project
 	err := easy.isCurrentDBSet()
 
 	if err != nil {
-		return err
+		return project, err
 	}
 
-	var project Project
 	project.projectID = uuid.NewString()
 	project.projectName = projectName
 	project.path = path
 	project.method = "INSERT"
 	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
 
-	return nil
+	return project, nil
 }
 
-func (easy *EasyEnv) AddTemplate(templateName string) error {
-
+func (easy *EasyEnv) AddTemplate(templateName string) (Template, error) {
+	var template Template
 	err := easy.isCurrentDBSet()
 
 	if err != nil {
-		return err
+		return template, err
 	}
 
-	var template Template
 	template.templateID = uuid.NewString()
 	template.templateName = templateName
 	template.method = "INSERT"
 	easy.currentConnection.templates = append(easy.currentConnection.templates, template)
 
-	return nil
+	return template, nil
 }
 
 func (easy *EasyEnv) RemoveProject(projectID string) error {

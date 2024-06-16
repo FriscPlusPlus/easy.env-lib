@@ -206,3 +206,15 @@ func removeData(connection *Connection, tableName string, parameterName string, 
 
 	return nil
 }
+
+func removeTemplateEnvData(connection *Connection, templateID int, keyName string) error {
+	db := connection.db
+
+	_, err := db.Exec("DELETE FROM templateValues WHERE templateID = ? AND keyName = ?", templateID, keyName)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}

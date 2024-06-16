@@ -2,7 +2,6 @@ package easyenv
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -111,7 +110,7 @@ func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
 
 func (easy *EasyEnv) SaveCurrentDB() error {
 
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -132,7 +131,7 @@ func (easy *EasyEnv) SaveCurrentDB() error {
 
 func (easy *EasyEnv) AddProject(projectName, path string) error {
 
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -149,7 +148,7 @@ func (easy *EasyEnv) AddProject(projectName, path string) error {
 
 func (easy *EasyEnv) AddTemplate(templateName string) error {
 
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -166,7 +165,7 @@ func (easy *EasyEnv) AddTemplate(templateName string) error {
 
 func (easy *EasyEnv) RemoveProject(projectID int) error {
 
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -193,7 +192,7 @@ func (easy *EasyEnv) RemoveProject(projectID int) error {
 
 func (easy *EasyEnv) RemoveTemplate(templateID int) error {
 
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -224,7 +223,7 @@ func (easy *EasyEnv) RemoveTemplate(templateID int) error {
 
 func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error {
 
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -248,7 +247,7 @@ func (easy *EasyEnv) AddEnvToProject(projectID int, keyName, value string) error
 }
 
 func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) error {
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -274,7 +273,7 @@ func (easy *EasyEnv) AddEnvToTemplate(templateID int, keyName, value string) err
 }
 
 func (easy *EasyEnv) RemoveEnvFromProject(projectID int, keyName string) error {
-	err := easy.IsCurrentDBSet()
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
@@ -298,6 +297,42 @@ func (easy *EasyEnv) RemoveEnvFromProject(projectID int, keyName string) error {
 	tmp = append(tmp, project.values[foundIndex+1:]...)
 
 	easy.currentConnection.projects[projectIndex].values = tmp
+
+	return nil
+}
+
+func (easy *EasyEnv) RemoveEnvFromTemplate(templateID int, keyName string) error {
+
+	err := easy.isCurrentDBSet()
+
+	if err != nil {
+		return err
+	}
+
+	err = removeTemplateEnvData(easy.currentConnection, templateID, keyName)
+
+	if err != nil {
+		return err
+	}
+
+	templateIndex, template, err := easy.getTemplateByID(templateID)
+
+	if err != nil {
+		return err
+	}
+
+	tmp := make([]TemplateDataSet, 0)
+	foundIndex := 0
+	for index, env := range template.values {
+		if env.keyName == keyName {
+			foundIndex = index
+			break
+		}
+	}
+	tmp = append(tmp, template.values[:foundIndex]...)
+	tmp = append(tmp, template.values[foundIndex+1:]...)
+
+	easy.currentConnection.templates[templateIndex].values = tmp
 
 	return nil
 }
@@ -329,7 +364,7 @@ func (easy *EasyEnv) removeConnection(dbName string) {
 	easy.connections = tmp
 }
 
-func (easy *EasyEnv) IsCurrentDBSet() error {
+func (easy *EasyEnv) isCurrentDBSet() error {
 
 	if easy.currentConnection == nil {
 		return fmt.Errorf("no database is currently open. Please open a database first using 'Open(path/to/sqlitefile)' before making any other calls")

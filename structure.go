@@ -12,10 +12,10 @@ type EasyEnv struct {
 }
 
 type Connection struct {
-	dbName    string     // db absolute path
-	db        *sql.DB    // db instance
-	projects  []Project  // projects and the associated env data
-	templates []Template // templates of all the envs
+	dbName    string      // db absolute path
+	db        *sql.DB     // db instance
+	projects  []*Project  // projects and the associated env data
+	templates []*Template // templates of all the envs
 }
 
 type Project struct {

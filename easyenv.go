@@ -15,8 +15,7 @@ type EasyEnvDefinition interface {
 	Load(dbName string) (*Connection, error)
 	Open(dbName string) (*Connection, error)
 	CloseDB(dbName string) error
-	SaveCurrentDB() error // this will save the data from the buffer to the current db and write for each project env  file
-	SaveAllDB() error     // this will save the data from the buffer to the all the open db and write for each project env  file
+	SaveDB() error // this will save the data from the buffer to the current db and write for each project env  file
 
 	CreateNewDB(dbName string) (*Connection, error)
 
@@ -31,9 +30,14 @@ type EasyEnvDefinition interface {
 
 	RemoveEnvFromProject(projectID, keyName string) error
 	RemoveEnvFromTemplate(projectID, keyName, value string) error
-	// TODO: Get template by id, get project by id, get all projects, get all templates, get env by project id/templateid and keyname, get all envs
-	LoadTemplates() error
 
+	GetTemplateByID(templateID string) (Template, error)
+	GetProjectByID(projectID string) (Project, error)
+
+	GetAllTemplates() ([]Template, error)
+	GetAllProjects() ([]Project, error)
+
+	LoadTemplates() error
 	LoadProjects() error
 
 	LoadTemplateIntoProject(template, projectID string) error
@@ -109,7 +113,7 @@ func (easy *EasyEnv) CreateNewDB(dbName string) (*Connection, error) {
 	return connection, nil
 }
 
-func (easy *EasyEnv) SaveCurrentDB() error {
+func (easy *EasyEnv) SaveDB() error {
 
 	err := easy.isCurrentDBSet()
 
@@ -134,8 +138,8 @@ func (easy *EasyEnv) SaveCurrentDB() error {
 	return nil
 }
 
-func (easy *EasyEnv) AddProject(projectName, path string) (Project, error) {
-	var project Project
+func (easy *EasyEnv) AddProject(projectName, path string) (*Project, error) {
+	project := new(Project)
 	err := easy.isCurrentDBSet()
 
 	if err != nil {
@@ -151,8 +155,8 @@ func (easy *EasyEnv) AddProject(projectName, path string) (Project, error) {
 	return project, nil
 }
 
-func (easy *EasyEnv) AddTemplate(templateName string) (Template, error) {
-	var template Template
+func (easy *EasyEnv) AddTemplate(templateName string) (*Template, error) {
+	template := new(Template)
 	err := easy.isCurrentDBSet()
 
 	if err != nil {
@@ -181,8 +185,8 @@ func (easy *EasyEnv) RemoveProject(projectID string) error {
 		return err
 	}
 
-	tmp := make([]Project, 0)
-	foundIndex, _, err := easy.getProjectByID(projectID)
+	tmp := make([]*Project, 0)
+	foundIndex, _, err := easy.GetProjectByID(projectID)
 
 	if err != nil {
 		return err
@@ -208,7 +212,7 @@ func (easy *EasyEnv) RemoveTemplate(templateID string) error {
 		return err
 	}
 
-	tmp := make([]Template, 0)
+	tmp := make([]*Template, 0)
 	foundIndex := 0
 
 	for index, project := range easy.currentConnection.templates {
@@ -239,7 +243,7 @@ func (easy *EasyEnv) AddEnvToProject(projectID string, keyName, value string) er
 	}
 
 	projects := easy.currentConnection.projects
-	index, _, err := easy.getProjectByID(projectID)
+	index, _, err := easy.GetProjectByID(projectID)
 
 	if err != nil {
 		return err
@@ -265,7 +269,7 @@ func (easy *EasyEnv) AddEnvToTemplate(templateID string, keyName, value string) 
 	}
 
 	templates := easy.currentConnection.templates
-	index, _, err := easy.getTemplateByID(templateID)
+	index, _, err := easy.GetTemplateByID(templateID)
 
 	if err != nil {
 		return err
@@ -283,7 +287,7 @@ func (easy *EasyEnv) RemoveEnvFromProject(projectID string, keyName string) erro
 		return err
 	}
 
-	projectIndex, project, err := easy.getProjectByID(projectID)
+	projectIndex, project, err := easy.GetProjectByID(projectID)
 
 	if err != nil {
 		return err
@@ -319,7 +323,7 @@ func (easy *EasyEnv) RemoveEnvFromTemplate(templateID string, keyName string) er
 		return err
 	}
 
-	templateIndex, template, err := easy.getTemplateByID(templateID)
+	templateIndex, template, err := easy.GetTemplateByID(templateID)
 
 	if err != nil {
 		return err
@@ -401,11 +405,11 @@ func (easy *EasyEnv) resetMethodState() {
 
 }
 
-func (easy *EasyEnv) getProjectByID(projectID string) (int, Project, error) {
+func (easy *EasyEnv) GetProjectByID(projectID string) (int, *Project, error) {
 	foundIndex := 0
-	var foundProject Project
+	var foundProject *Project
 	for index, project := range easy.currentConnection.projects {
-		if project.projectID == projectID {
+		if project.GetProjectID() == projectID {
 			foundIndex = index
 			foundProject = project
 			return foundIndex, foundProject, nil
@@ -414,11 +418,11 @@ func (easy *EasyEnv) getProjectByID(projectID string) (int, Project, error) {
 	return foundIndex, foundProject, fmt.Errorf("no project found with ID %s. Please check the ID and try again", projectID)
 }
 
-func (easy *EasyEnv) getTemplateByID(templateID string) (int, Template, error) {
+func (easy *EasyEnv) GetTemplateByID(templateID string) (int, *Template, error) {
 	foundIndex := 0
-	var foundTemplate Template
+	var foundTemplate *Template
 	for index, template := range easy.currentConnection.templates {
-		if template.templateID == templateID {
+		if template.GetTemplateByID() == templateID {
 			foundIndex = index
 			foundTemplate = template
 			return foundIndex, foundTemplate, nil

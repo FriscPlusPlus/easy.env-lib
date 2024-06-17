@@ -84,23 +84,12 @@ func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup
 		return
 	}
 	for _, project := range connection.projects {
-
-		switch project.method {
-		case "INSERT":
-			_, err := tx.Exec("INSERT INTO projects(projectID, projectName, path) VALUES(?, ?, ?)", project.projectID, project.projectName, project.path)
-			if err != nil {
-				tx.Rollback()
-				*errorResult = err
-				return
-			}
-		case "UPDATE":
-			_, err := tx.Exec("UPDATE projects SET projectName = ?, path = ? WHERE projectID = ?", project.projectName, project.path, project.projectID)
-			if err != nil {
-				tx.Rollback()
-				*errorResult = err
-				return
-			}
-
+		query := "INSERT INTO projects(projectID, projectName, path) VALUES(?, ?, ?) ON CONFLICT(projectID) DO UPDATE SET projectName = ?, path = ? WHERE projectID = ?"
+		_, err := tx.Exec(query, project.projectID, project.projectName, project.path, project.projectName, project.path, project.projectID)
+		if err != nil {
+			tx.Rollback()
+			*errorResult = err
+			return
 		}
 	}
 
@@ -124,22 +113,12 @@ func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGrou
 	}
 	for _, template := range connection.templates {
 
-		switch template.method {
-		case "INSERT":
-			_, err := tx.Exec("INSERT INTO templates(templateID, templateName) VALUES(?, ?)", template.templateID, template.templateName)
-			if err != nil {
-				tx.Rollback()
-				*errorResult = err
-				return
-			}
-		case "UPDATE":
-			_, err := tx.Exec("UPDATE templates SET templateName = ? WHERE templateID = ?", template.templateName, template.templateID)
-			if err != nil {
-				tx.Rollback()
-				*errorResult = err
-				return
-			}
-
+		query := "INSERT INTO templates(templateID, templateName) VALUES(?, ?) ON CONFLICT(templateID) DO UPDATE SET templateName = ? WHERE templateID = ?"
+		_, err := tx.Exec(query, template.templateID, template.templateName, template.templateName, template.templateID)
+		if err != nil {
+			tx.Rollback()
+			*errorResult = err
+			return
 		}
 	}
 
@@ -165,22 +144,11 @@ func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitG
 	for _, template := range connection.templates {
 		for _, templateEnv := range template.values {
 
-			switch templateEnv.method {
-			case "INSERT":
-				_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?)", templateEnv.keyName, templateEnv.templateID, templateEnv.value)
-				if err != nil {
-					tx.Rollback()
-					*errorResult = err
-					return
-				}
-			case "UPDATE":
-				_, err := tx.Exec("UPDATE templateValues SET value = ? WHERE templateID = ? AND keyName = ?", templateEnv.value, templateEnv.templateID, templateEnv.keyName)
-				if err != nil {
-					tx.Rollback()
-					*errorResult = err
-					return
-				}
-
+			_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?) ON CONFLICT(keyName, templateID) DO UPDATE SET value = ? WHERE keyName = ? AND templateID = ?", templateEnv.keyName, templateEnv.templateID, templateEnv.value, templateEnv.value, templateEnv.keyName, templateEnv.templateID)
+			if err != nil {
+				tx.Rollback()
+				*errorResult = err
+				return
 			}
 
 		}

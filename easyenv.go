@@ -133,8 +133,6 @@ func (easy *EasyEnv) SaveDB() error {
 		return err
 	}
 
-	easy.resetMethodState()
-
 	return nil
 }
 
@@ -379,30 +377,6 @@ func (easy *EasyEnv) isCurrentDBSet() error {
 	}
 
 	return nil
-}
-
-func (easy *EasyEnv) resetMethodState() {
-	projects := easy.currentConnection.projects
-	templates := easy.currentConnection.templates
-
-	for i := range projects {
-		if len(projects[i].method) > 0 {
-			projects[i].method = ""
-		}
-	}
-
-	for i := range templates {
-		if len(templates[i].method) > 0 {
-			templates[i].method = ""
-		}
-
-		for x := range templates[i].values {
-			if len(templates[i].values[x].method) > 0 {
-				templates[i].values[x].method = ""
-			}
-		}
-	}
-
 }
 
 func (easy *EasyEnv) GetProjectByID(projectID string) (int, *Project, error) {

@@ -23,14 +23,12 @@ type Project struct {
 	projectName string
 	path        string // abosule path of the project containing the .env file
 	values      []ProjectDataSet
-	method      string
 }
 
 type Template struct {
 	templateID   string
 	templateName string
 	values       []TemplateDataSet
-	method       string
 }
 
 type ProjectDataSet struct {
@@ -42,5 +40,4 @@ type TemplateDataSet struct {
 	templateID string
 	keyName    string
 	value      string
-	method     string
 }

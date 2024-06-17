@@ -3,10 +3,11 @@ package easyenv
 import (
 	"database/sql"
 	"fmt"
-	"github.com/google/uuid"
-	_ "github.com/mattn/go-sqlite3"
 	"os"
 	"path"
+
+	"github.com/google/uuid"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 type EasyEnvDefinition interface {
@@ -19,8 +20,8 @@ type EasyEnvDefinition interface {
 
 	CreateNewDB(dbName string) (*Connection, error)
 
-	AddProject(projectName, path string) error 
-	AddTemplate(templateName string) error   
+	AddProject(projectName, path string) error
+	AddTemplate(templateName string) error
 
 	RemoveProject(project Project) error
 	RemoveTemplate(template Template) error
@@ -443,10 +444,10 @@ func saveEnvInFile(connection *Connection) error {
 	return err
 }
 
-func createEnvString(enviorments []ProjectDataSet) string {
+func createEnvString(environments []ProjectDataSet) string {
 	var result string
 
-	for _, env := range enviorments {
+	for _, env := range environments {
 		result += fmt.Sprintf("%s=%s\n", env.keyName, env.value)
 	}
 

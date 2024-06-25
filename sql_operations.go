@@ -85,7 +85,7 @@ func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup
 	}
 	for _, project := range connection.projects {
 		query := "INSERT INTO projects(projectID, projectName, path) VALUES(?, ?, ?) ON CONFLICT(projectID) DO UPDATE SET projectName = ?, path = ? WHERE projectID = ?"
-		_, err := tx.Exec(query, project.projectID, project.projectName, project.path, project.projectName, project.path, project.projectID)
+		_, err := tx.Exec(query, project.GetProjectID(), project.GetProjectName(), project.GetPath(), project.GetProjectName(), project.GetPath(), project.GetProjectID())
 		if err != nil {
 			tx.Rollback()
 			*errorResult = err
@@ -114,7 +114,7 @@ func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGrou
 	for _, template := range connection.templates {
 
 		query := "INSERT INTO templates(templateID, templateName) VALUES(?, ?) ON CONFLICT(templateID) DO UPDATE SET templateName = ? WHERE templateID = ?"
-		_, err := tx.Exec(query, template.templateID, template.templateName, template.templateName, template.templateID)
+		_, err := tx.Exec(query, template.GetTemplateID(), template.GetTemplateName(), template.GetTemplateName(), template.GetTemplateID())
 		if err != nil {
 			tx.Rollback()
 			*errorResult = err
@@ -144,7 +144,7 @@ func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitG
 	for _, template := range connection.templates {
 		for _, templateEnv := range template.values {
 
-			_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?) ON CONFLICT(keyName, templateID) DO UPDATE SET value = ? WHERE keyName = ? AND templateID = ?", templateEnv.keyName, templateEnv.templateID, templateEnv.value, templateEnv.value, templateEnv.keyName, template.templateID)
+			_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?) ON CONFLICT(keyName, templateID) DO UPDATE SET value = ? WHERE keyName = ? AND templateID = ?", templateEnv.GetKey(), template.GetTemplateID(), templateEnv.GetValue(), templateEnv.GetValue(), templateEnv.GetKey(), template.GetTemplateID())
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err

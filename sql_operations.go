@@ -144,7 +144,7 @@ func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitG
 	for _, template := range connection.templates {
 		for _, templateEnv := range template.values {
 
-			_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?) ON CONFLICT(keyName, templateID) DO UPDATE SET value = ? WHERE keyName = ? AND templateID = ?", templateEnv.keyName, templateEnv.templateID, templateEnv.value, templateEnv.value, templateEnv.keyName, templateEnv.templateID)
+			_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?) ON CONFLICT(keyName, templateID) DO UPDATE SET value = ? WHERE keyName = ? AND templateID = ?", templateEnv.keyName, templateEnv.templateID, templateEnv.value, templateEnv.value, templateEnv.keyName, template.templateID)
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err

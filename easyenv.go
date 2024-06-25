@@ -137,17 +137,14 @@ func (easy *EasyEnv) SaveDB() error {
 }
 
 func (easy *EasyEnv) AddProject(projectName, path string) (*Project, error) {
-	project := new(Project)
 	err := easy.isCurrentDBSet()
 
 	if err != nil {
-		return project, err
+		return nil, err
 	}
 
-	project.projectID = uuid.NewString()
-	project.projectName = projectName
-	project.path = path
-	project.method = "INSERT"
+	project := NewProject(projectName, path)
+
 	easy.currentConnection.projects = append(easy.currentConnection.projects, project)
 
 	return project, nil
@@ -163,7 +160,6 @@ func (easy *EasyEnv) AddTemplate(templateName string) (*Template, error) {
 
 	template.templateID = uuid.NewString()
 	template.templateName = templateName
-	template.method = "INSERT"
 	easy.currentConnection.templates = append(easy.currentConnection.templates, template)
 
 	return template, nil
@@ -235,7 +231,7 @@ func (easy *EasyEnv) AddEnvToProject(projectID string, keyName, value string) er
 		return err
 	}
 
-	env := ProjectDataSet{
+	env := &DataSet{
 		keyName: keyName,
 		value:   value,
 	}
@@ -259,11 +255,10 @@ func (easy *EasyEnv) AddEnvToTemplate(templateID string, keyName, value string) 
 		return err
 	}
 
-	env := TemplateDataSet{
+	env := &DataSet{
 		templateID: templateID,
 		keyName:    keyName,
 		value:      value,
-		method:     "INSERT",
 	}
 
 	templates := easy.currentConnection.templates
@@ -291,7 +286,7 @@ func (easy *EasyEnv) RemoveEnvFromProject(projectID string, keyName string) erro
 		return err
 	}
 
-	tmp := make([]ProjectDataSet, 0)
+	tmp := make([]*DataSet, 0)
 	foundIndex := 0
 	for index, env := range project.values {
 		if env.keyName == keyName {
@@ -327,7 +322,7 @@ func (easy *EasyEnv) RemoveEnvFromTemplate(templateID string, keyName string) er
 		return err
 	}
 
-	tmp := make([]TemplateDataSet, 0)
+	tmp := make([]*DataSet, 0)
 	foundIndex := 0
 	for index, env := range template.values {
 		if env.keyName == keyName {
@@ -422,7 +417,7 @@ func saveEnvInFile(connection *Connection) error {
 	return err
 }
 
-func createEnvString(environments []ProjectDataSet) string {
+func createEnvString(environments []*DataSet) string {
 	var result string
 
 	for _, env := range environments {

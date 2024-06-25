@@ -1,6 +1,23 @@
 package easyenv
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+
+	"github.com/google/uuid"
+)
+
+// constructor
+
+func NewProject(projectName, path string) *Project {
+	project := new(Project)
+
+	project.projectID = uuid.NewString()
+	project.SetProjectName(projectName)
+	project.SetPath(path)
+
+	return project
+}
 
 //  getters
 
@@ -16,11 +33,11 @@ func (prj *Project) GetPath() string {
 	return prj.path
 }
 
-func (prj *Project) GetEnvironments() []*ProjectDataSet {
+func (prj *Project) GetEnvironments() []*DataSet {
 	return prj.values
 }
 
-func (prj *Project) GetEnvironmentByKey(keyName string) (*ProjectDataSet, error) {
+func (prj *Project) GetEnvironmentByKey(keyName string) (*DataSet, error) {
 
 	for _, env := range prj.values {
 		if env.keyName == keyName {
@@ -28,7 +45,7 @@ func (prj *Project) GetEnvironmentByKey(keyName string) (*ProjectDataSet, error)
 		}
 	}
 
-	return nil, fmt.Errorf("No enviorment found with the key %s", keyName)
+	return nil, fmt.Errorf("no enviorment found with the key %s", keyName)
 }
 
 // setters
@@ -38,32 +55,51 @@ func (prj *Project) SetProjectName(value string) {
 }
 
 func (prj *Project) SetPath(value string) {
+	lastChar := string(value[len(value)-1])
+	if lastChar != "\\" {
+		value = fmt.Sprintf("%s\\", value)
+	}
 	prj.path = value
 }
 
-func (prj *Project) SetEnvValue(keyName, value string) (*ProjectDataSet, error) {
-	for _, env := range prj.values {
-		if env.keyName == keyName {
-			env.value = value
-			return env, nil
-
-		}
-	}
-
-	return nil, fmt.Errorf("No enviorment found with the key %s", keyName)
-}
-
-func (prj *Project) AddEnvrioment(keyName, value string) (*ProjectDataSet, error) {
+func (prj *Project) AddEnvrioment(keyName, value string) (*DataSet, error) {
 
 	_, ok := prj.GetEnvironmentByKey(keyName)
 
 	if ok != nil {
-		return nil, fmt.Errorf("An enviorment with the key %s already exists!", keyName)
+		return nil, fmt.Errorf("an enviorment with the key %s already exists", keyName)
 	}
 
-	env := new(ProjectDataSet)
-	env.keyName = keyName
-	env.value = value
+	env := NewProjectDtaSet(keyName, value)
 	prj.values = append(prj.values, env)
 	return env, nil
+}
+
+func (prj *Project) RemoveEnviorment(keyName string) {
+
+	tmp := make([]*DataSet, 0)
+	foundIndex := 0
+	for index, env := range prj.values {
+		if env.keyName == keyName {
+			foundIndex = index
+			break
+		}
+	}
+	tmp = append(tmp, prj.values[:foundIndex]...)
+	tmp = append(tmp, prj.values[foundIndex+1:]...)
+
+	prj.values = tmp
+}
+
+// this method will remove the enviorment and the related .env file
+func (prj *Project) RemoveAllEnviorments() error {
+	err := os.Remove(fmt.Sprintf("%s.env", prj.path))
+
+	if err != nil {
+		return err
+	}
+
+	prj.values = []*DataSet{}
+
+	return nil
 }

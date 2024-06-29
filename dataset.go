@@ -2,7 +2,7 @@ package easyenv
 
 // constructor
 
-func NewProjectDtaSet(keyName, value string) *DataSet {
+func NewDataSet(keyName, value string) *DataSet {
 	DataSet := new(DataSet)
 	DataSet.keyName = keyName
 	DataSet.SetValue(value)

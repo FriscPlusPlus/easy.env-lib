@@ -2,9 +2,9 @@ package easyenv
 
 import (
 	"fmt"
-	"os"
-
 	"github.com/google/uuid"
+	"os"
+	"path"
 )
 
 // constructor
@@ -70,7 +70,7 @@ func (prj *Project) AddEnvrioment(keyName, value string) (*DataSet, error) {
 		return nil, fmt.Errorf("an enviorment with the key %s already exists", keyName)
 	}
 
-	env := NewProjectDtaSet(keyName, value)
+	env := NewDataSet(keyName, value)
 	prj.values = append(prj.values, env)
 	return env, nil
 }
@@ -102,4 +102,32 @@ func (prj *Project) RemoveAllEnviorments() error {
 	prj.values = []*DataSet{}
 
 	return nil
+}
+
+// Functionalities
+
+func (prj *Project) SaveEnvironmentsToFile() error {
+	var err error
+
+	envPath := path.Join(prj.path, ".env")
+	os.Remove(envPath)
+
+	envString := createEnvString(prj.values)
+
+	err = os.WriteFile(envPath, []byte(envString), 0644)
+
+	if err != nil {
+		return err
+	}
+	return err
+}
+
+func createEnvString(environments []*DataSet) string {
+	var result string
+
+	for _, env := range environments {
+		result += fmt.Sprintf("%s=%s\n", env.keyName, env.value)
+	}
+
+	return result
 }

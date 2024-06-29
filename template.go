@@ -53,7 +53,7 @@ func (template *Template) AddEnvrioment(keyName, value string) (*DataSet, error)
 		return nil, fmt.Errorf("an enviorment with the key %s already exists", keyName)
 	}
 
-	env := NewProjectDtaSet(keyName, value)
+	env := NewDataSet(keyName, value)
 	template.values = append(template.values, env)
 	return env, nil
 }

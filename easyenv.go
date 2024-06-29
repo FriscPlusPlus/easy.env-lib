@@ -3,8 +3,6 @@ package easyenv
 import (
 	"database/sql"
 	"fmt"
-	"os"
-	"path"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -93,10 +91,23 @@ func (easy *EasyEnv) SaveDB() error {
 		return err
 	}
 
-	err = saveEnvInFile(easy.currentConnection)
+	return nil
+}
+
+func (easy *EasyEnv) SaveAllProjectEnvironmentsToFile() error {
+
+	err := easy.isCurrentDBSet()
 
 	if err != nil {
 		return err
+	}
+
+	for _, project := range easy.currentConnection.projects {
+		err = project.SaveEnvironmentsToFile()
+
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -187,7 +198,6 @@ func (easy *EasyEnv) RemoveTemplate(templateID string) error {
 
 	return nil
 }
-
 
 /*
  Getters
@@ -286,32 +296,4 @@ func (easy *EasyEnv) isCurrentDBSet() error {
 	}
 
 	return nil
-}
-
-
-func saveEnvInFile(connection *Connection) error {
-	var err error
-	for _, project := range connection.projects {
-		envPath := path.Join(project.path, ".env")
-		os.Remove(envPath)
-
-		envString := createEnvString(project.values)
-
-		err = os.WriteFile(envPath, []byte(envString), 0644)
-
-		if err != nil {
-			return err
-		}
-	}
-	return err
-}
-
-func createEnvString(environments []*DataSet) string {
-	var result string
-
-	for _, env := range environments {
-		result += fmt.Sprintf("%s=%s\n", env.keyName, env.value)
-	}
-
-	return result
 }

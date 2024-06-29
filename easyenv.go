@@ -188,6 +188,70 @@ func (easy *EasyEnv) RemoveTemplate(templateID string) error {
 	return nil
 }
 
+
+/*
+ Getters
+*/
+
+func (easy *EasyEnv) GetProject(projectID string) (int, *Project, error) {
+
+	err := easy.isCurrentDBSet()
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	foundIndex := 0
+	var foundProject *Project
+	for index, project := range easy.currentConnection.projects {
+		if project.GetProjectID() == projectID {
+			foundIndex = index
+			foundProject = project
+			return foundIndex, foundProject, nil
+		}
+	}
+	return foundIndex, foundProject, fmt.Errorf("no project found with ID %s. Please check the ID and try again", projectID)
+}
+
+func (easy *EasyEnv) GetProjects() ([]*Project, error) {
+	err := easy.isCurrentDBSet()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return easy.currentConnection.projects, nil
+}
+
+func (easy *EasyEnv) GetTemplate(templateID string) (int, *Template, error) {
+	err := easy.isCurrentDBSet()
+
+	if err != nil {
+		return 0, nil, err
+	}
+
+	foundIndex := 0
+	var foundTemplate *Template
+	for index, template := range easy.currentConnection.templates {
+		if template.GetTemplateID() == templateID {
+			foundIndex = index
+			foundTemplate = template
+			return foundIndex, foundTemplate, nil
+		}
+	}
+	return 0, foundTemplate, fmt.Errorf("no template found with ID %s. Please verify the ID and try again", templateID)
+}
+
+func (easy *EasyEnv) GetTemplates() ([]*Template, error) {
+	err := easy.isCurrentDBSet()
+
+	if err != nil {
+		return nil, err
+	}
+
+	return easy.currentConnection.templates, nil
+}
+
 /*
 	Unexported methods
 */
@@ -224,39 +288,6 @@ func (easy *EasyEnv) isCurrentDBSet() error {
 	return nil
 }
 
-func (easy *EasyEnv) GetProject(projectID string) (int, *Project, error) {
-	foundIndex := 0
-	var foundProject *Project
-	for index, project := range easy.currentConnection.projects {
-		if project.GetProjectID() == projectID {
-			foundIndex = index
-			foundProject = project
-			return foundIndex, foundProject, nil
-		}
-	}
-	return foundIndex, foundProject, fmt.Errorf("no project found with ID %s. Please check the ID and try again", projectID)
-}
-
-func (easy *EasyEnv) GetProjects() []*Project {
-	return easy.currentConnection.projects
-}
-
-func (easy *EasyEnv) GetTemplate(templateID string) (int, *Template, error) {
-	foundIndex := 0
-	var foundTemplate *Template
-	for index, template := range easy.currentConnection.templates {
-		if template.GetTemplateID() == templateID {
-			foundIndex = index
-			foundTemplate = template
-			return foundIndex, foundTemplate, nil
-		}
-	}
-	return 0, foundTemplate, fmt.Errorf("no template found with ID %s. Please verify the ID and try again", templateID)
-}
-
-func (easy *EasyEnv) GetTemplates() []*Template {
-	return easy.currentConnection.templates
-}
 
 func saveEnvInFile(connection *Connection) error {
 	var err error

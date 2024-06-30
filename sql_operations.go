@@ -18,7 +18,7 @@ func createTables(connection *Connection) error {
 		return err
 	}
 
-	_, err = db.Exec("CREATE TABLE templateValues(keyName TEXT PRIMARY KEY, templateID stringEGER, value TEXT, FOREIGN KEY(templateID) REFERENCES templates(templateID))")
+	_, err = db.Exec("CREATE TABLE templateValues(keyName TEXT PRIMARY KEY, templateID TEXT, value TEXT, FOREIGN KEY(templateID) REFERENCES templates(templateID))")
 	if err != nil {
 		return err
 	}
@@ -109,7 +109,7 @@ func selectTemplates(connection *Connection) ([]*Template, error) {
 			return nil, err
 		}
 
-		template.values, err = selectTemplateEnviorments(connection, template.templateID)
+		template.values, err = selectTemplateEnvironments(connection, template.templateID)
 		if err != nil {
 			return nil, err
 		}
@@ -120,7 +120,7 @@ func selectTemplates(connection *Connection) ([]*Template, error) {
 	return result, nil
 }
 
-func selectTemplateEnviorments(connection *Connection, templateID string) ([]*DataSet, error) {
+func selectTemplateEnvironments(connection *Connection, templateID string) ([]*DataSet, error) {
 	var result []*DataSet
 	db := connection.db
 	query := "SELECT keyName, value FROM templateValues WHERE templateID = ?"

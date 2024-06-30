@@ -42,10 +42,13 @@ func (template *Template) SetTemplateName(templateName string) {
 }
 
 func (template *Template) AddEnvironment(keyName, value string) (*DataSet, error) {
-	_, err := template.GetEnvironmentByKey(keyName)
-	if err == nil {
+	
+	_, ok := template.GetEnvironmentByKey(keyName)
+
+	if ok == nil {
 		return nil, fmt.Errorf("an environment with the key %s already exists", keyName)
 	}
+
 	env := NewDataSet(keyName, value)
 	template.values = append(template.values, env)
 	return env, nil

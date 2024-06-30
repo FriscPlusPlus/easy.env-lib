@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"path/filepath"
 	"strings"
 
 	"github.com/google/uuid"
@@ -28,14 +29,10 @@ func (prj *Project) SetProjectName(value string) {
 }
 
 func (prj *Project) SetPath(value string) {
-	lastChar := string(value[len(value)-1])
-	if lastChar != "\\" {
-		value = fmt.Sprintf("%s\\", value)
-	}
-	prj.path = value
+	prj.path = filepath.Join(value, ".env")
 }
 
-func (prj *Project) AddEnvrioment(keyName, value string) (*DataSet, error) {
+func (prj *Project) AddEnvironment(keyName, value string) (*DataSet, error) {
 
 	_, ok := prj.GetEnvironmentByKey(keyName)
 
@@ -69,7 +66,7 @@ func (prj *Project) RemoveEnviorment(keyName string) {
 }
 
 func (prj *Project) RemoveAllEnviorments() error {
-	err := os.Remove(fmt.Sprintf("%s.env", prj.path))
+	err := os.Remove(prj.path)
 
 	if err != nil {
 		return err
@@ -110,7 +107,7 @@ func (prj *Project) GetEnvironmentByKey(keyName string) (*DataSet, error) {
 }
 
 func (prj *Project) LoadEnvironmentsFromFile() error {
-	envPath := path.Join(prj.path, ".env")
+	envPath := prj.GetPath()
 	data, err := os.ReadFile(envPath)
 
 	if err != nil {
@@ -144,7 +141,7 @@ func (prj *Project) LoadEnvironmentsFromFile() error {
 func (prj *Project) SaveEnvironmentsToFile() error {
 	var err error
 
-	envPath := path.Join(prj.path, ".env")
+	envPath := prj.GetPath()
 	os.Remove(envPath)
 
 	envString := createEnvString(prj.values)

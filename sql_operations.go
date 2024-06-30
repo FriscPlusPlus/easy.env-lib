@@ -7,22 +7,18 @@ import (
 )
 
 func createTables(connection *Connection) error {
-
 	db := connection.db
 	_, err := db.Exec("CREATE TABLE projects(projectID TEXT PRIMARY KEY, projectName TEXT, path TEXT)")
-
 	if err != nil {
 		return err
 	}
 
 	_, err = db.Exec("CREATE TABLE templates(templateID TEXT PRIMARY KEY, templateName TEXT)")
-
 	if err != nil {
 		return err
 	}
 
 	_, err = db.Exec("CREATE TABLE templateValues(keyName TEXT PRIMARY KEY, templateID stringEGER, value TEXT, FOREIGN KEY(templateID) REFERENCES templates(templateID))")
-
 	if err != nil {
 		return err
 	}
@@ -78,11 +74,9 @@ func selectProjects(connection *Connection) ([]*Project, error) {
 	query := "SELECT * FROM projects"
 
 	rows, err := db.Query(query)
-
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	for rows.Next() {
@@ -103,11 +97,9 @@ func selectTemplates(connection *Connection) ([]*Template, error) {
 	query := "SELECT * FROM templates"
 
 	rows, err := db.Query(query)
-
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	for rows.Next() {
@@ -118,7 +110,6 @@ func selectTemplates(connection *Connection) ([]*Template, error) {
 		}
 
 		template.values, err = selectTemplateEnviorments(connection, template.templateID)
-
 		if err != nil {
 			return nil, err
 		}
@@ -135,11 +126,9 @@ func selectTemplateEnviorments(connection *Connection, templateID string) ([]*Da
 	query := "SELECT keyName, value FROM templateValues WHERE templateID = ?"
 
 	rows, err := db.Query(query, templateID)
-
 	if err != nil {
 		return nil, err
 	}
-
 	defer rows.Close()
 
 	for rows.Next() {
@@ -155,23 +144,19 @@ func selectTemplateEnviorments(connection *Connection, templateID string) ([]*Da
 }
 
 func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup) {
-
 	defer wg.Done()
 	db := connection.db
 
 	tx, err := db.Begin()
-
 	if err != nil {
 		*errorResult = err
 		return
 	}
-	for _, project := range connection.projects {
 
+	for _, project := range connection.projects {
 		if project.deleted {
 			query := "DELETE FROM projects WHERE projectID = ?"
-
 			_, err := tx.Exec(query, project.GetProjectID())
-
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err
@@ -192,28 +177,23 @@ func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup
 	err = tx.Commit()
 	if err != nil {
 		*errorResult = err
-		return
 	}
 }
 
 func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGroup) {
 	defer wg.Done()
-
 	db := connection.db
 
 	tx, err := db.Begin()
-
 	if err != nil {
 		*errorResult = err
 		return
 	}
-	for _, template := range connection.templates {
 
+	for _, template := range connection.templates {
 		if template.deleted {
 			query := "DELETE FROM templates WHERE templateID = ?"
-
 			_, err := tx.Exec(query, template.GetTemplateID())
-
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err
@@ -232,7 +212,6 @@ func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGrou
 	}
 
 	err = tx.Commit()
-
 	if err != nil {
 		*errorResult = err
 	}
@@ -240,11 +219,9 @@ func saveTemplates(connection *Connection, errorResult *error, wg *sync.WaitGrou
 
 func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitGroup) {
 	defer wg.Done()
-
 	db := connection.db
 
 	tx, err := db.Begin()
-
 	if err != nil {
 		*errorResult = err
 		return
@@ -252,12 +229,9 @@ func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitG
 
 	for _, template := range connection.templates {
 		for _, templateEnv := range template.values {
-
 			if templateEnv.deleted {
 				query := "DELETE FROM templateValues WHERE keyName = ? AND templateID = ?"
-
 				_, err := tx.Exec(query, templateEnv.GetKey(), template.GetTemplateID())
-
 				if err != nil {
 					tx.Rollback()
 					*errorResult = err
@@ -266,19 +240,16 @@ func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitG
 				continue
 			}
 
-			//_, err := tx.Exec("INSERT INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?) ON CONFLICT(keyName, templateID) DO UPDATE SET value = ?", templateEnv.GetKey(), template.GetTemplateID(), templateEnv.GetValue(), templateEnv.GetValue())
 			_, err := tx.Exec("REPLACE INTO templateValues(keyName, templateID, value) VALUES(?, ?, ?)", templateEnv.GetKey(), template.GetTemplateID(), templateEnv.GetValue())
 			if err != nil {
 				tx.Rollback()
 				*errorResult = err
 				return
 			}
-
 		}
 	}
 
 	err = tx.Commit()
-
 	if err != nil {
 		*errorResult = err
 	}

@@ -6,17 +6,15 @@ import (
 	"github.com/google/uuid"
 )
 
+// Constructor
 func NewTemplate(templateName string) *Template {
 	template := new(Template)
-
 	template.templateID = uuid.NewString()
 	template.SetTemplateName(templateName)
-
 	return template
 }
 
-// getters
-
+// Getters
 func (template *Template) GetTemplateID() string {
 	return template.templateID
 }
@@ -30,29 +28,24 @@ func (template *Template) GetEnvironments() []*DataSet {
 }
 
 func (template *Template) GetEnvironmentByKey(keyName string) (*DataSet, error) {
-
 	for _, env := range template.values {
 		if env.keyName == keyName {
 			return env, nil
 		}
 	}
-
-	return nil, fmt.Errorf("no enviorment found with the key %s", keyName)
+	return nil, fmt.Errorf("no environment found with the key %s", keyName)
 }
 
-// setters
+// Setters
 func (template *Template) SetTemplateName(templateName string) {
 	template.templateName = templateName
 }
 
-func (template *Template) AddEnvrioment(keyName, value string) (*DataSet, error) {
-
-	_, ok := template.GetEnvironmentByKey(keyName)
-
-	if ok == nil {
-		return nil, fmt.Errorf("an enviorment with the key %s already exists", keyName)
+func (template *Template) AddEnvironment(keyName, value string) (*DataSet, error) {
+	_, err := template.GetEnvironmentByKey(keyName)
+	if err == nil {
+		return nil, fmt.Errorf("an environment with the key %s already exists", keyName)
 	}
-
 	env := NewDataSet(keyName, value)
 	template.values = append(template.values, env)
 	return env, nil
@@ -60,29 +53,22 @@ func (template *Template) AddEnvrioment(keyName, value string) (*DataSet, error)
 
 func (template *Template) Remove() {
 	template.deleted = true
-
 	for _, data := range template.values {
 		data.Remove()
 	}
 }
 
-func (template *Template) RemoveEnviorment(keyName string) {
-
-	tmp := make([]*DataSet, 0)
-	foundIndex := 0
-	for index, env := range template.values {
-		if env.keyName == keyName {
-			foundIndex = index
-			break
+func (template *Template) RemoveEnvironment(keyName string) {
+	var tmp []*DataSet
+	for _, env := range template.values {
+		if env.keyName != keyName {
+			tmp = append(tmp, env)
 		}
 	}
-	tmp = append(tmp, template.values[:foundIndex]...)
-	tmp = append(tmp, template.values[foundIndex+1:]...)
-
 	template.values = tmp
 }
 
-// this method will remove the enviorment
-func (template *Template) RemoveAllEnviorments() {
+// This method will remove the environment
+func (template *Template) RemoveAllEnvironments() {
 	template.values = []*DataSet{}
 }

@@ -11,6 +11,42 @@ func NewEasyEnv() *EasyEnv {
 	return new(EasyEnv)
 }
 
+/*
+	Unexported methods
+*/
+
+func (easy *EasyEnv) getConnectionByDBname(dbName string) (*Connection, error) {
+	for _, connection := range easy.connections {
+		if connection.dbName == dbName {
+			return connection, nil
+		}
+	}
+	return nil, fmt.Errorf("no connection found for the database with the name: %s", dbName)
+}
+
+func (easy *EasyEnv) removeConnection(dbName string) {
+	tmp := make([]*Connection, 0)
+	foundIndex := 0
+	for index, connection := range easy.connections {
+		if connection.dbName == dbName {
+			foundIndex = index
+			break
+		}
+	}
+	tmp = append(tmp, easy.connections[:foundIndex]...)
+	tmp = append(tmp, easy.connections[foundIndex+1:]...)
+	easy.connections = tmp
+}
+
+func (easy *EasyEnv) isCurrentDBSet() error {
+
+	if easy.currentConnection == nil {
+		return fmt.Errorf("no database is currently open. Please open a database first using 'Open(path/to/sqlitefile)' before making any other calls")
+	}
+
+	return nil
+}
+
 func (easy *EasyEnv) Load(dbName string) (*Connection, error) {
 	db, err := sql.Open("sqlite3", dbName)
 
@@ -253,40 +289,4 @@ func (easy *EasyEnv) GetTemplates() ([]*Template, error) {
 	}
 
 	return easy.currentConnection.templates, nil
-}
-
-/*
-	Unexported methods
-*/
-
-func (easy *EasyEnv) getConnectionByDBname(dbName string) (*Connection, error) {
-	for _, connection := range easy.connections {
-		if connection.dbName == dbName {
-			return connection, nil
-		}
-	}
-	return nil, fmt.Errorf("no connection found for the database with the name: %s", dbName)
-}
-
-func (easy *EasyEnv) removeConnection(dbName string) {
-	tmp := make([]*Connection, 0)
-	foundIndex := 0
-	for index, connection := range easy.connections {
-		if connection.dbName == dbName {
-			foundIndex = index
-			break
-		}
-	}
-	tmp = append(tmp, easy.connections[:foundIndex]...)
-	tmp = append(tmp, easy.connections[foundIndex+1:]...)
-	easy.connections = tmp
-}
-
-func (easy *EasyEnv) isCurrentDBSet() error {
-
-	if easy.currentConnection == nil {
-		return fmt.Errorf("no database is currently open. Please open a database first using 'Open(path/to/sqlitefile)' before making any other calls")
-	}
-
-	return nil
 }

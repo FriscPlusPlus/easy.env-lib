@@ -10,6 +10,16 @@ func NewDataSet(keyName, value string) *DataSet {
 	return DataSet
 }
 
+// setters
+
+func (dtaset *DataSet) SetValue(value string) {
+	dtaset.value = value
+}
+
+func (dtaset *DataSet) Remove() {
+	dtaset.deleted = true
+}
+
 // getters
 
 func (dtaset *DataSet) GetKey() string {
@@ -18,13 +28,4 @@ func (dtaset *DataSet) GetKey() string {
 
 func (dtaset *DataSet) GetValue() string {
 	return dtaset.value
-}
-
-// setters
-func (dtaset *DataSet) SetValue(value string) {
-	dtaset.value = value
-}
-
-func (dtaset *DataSet) Remove() {
-	dtaset.deleted = true
 }

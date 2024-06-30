@@ -33,8 +33,7 @@ func saveDataInDB(connection *Connection) error {
 	var projectError error
 	var templateError error
 
-	wg.Add(1)
-	wg.Add(1)
+	wg.Add(2)
 
 	go saveProjects(connection, &projectError, wg)
 	go saveTemplates(connection, &templateError, wg)

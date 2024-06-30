@@ -21,7 +21,7 @@ type Connection struct {
 type Project struct {
 	projectID   string
 	projectName string
-	path        string // abosule path of the project containing the .env file
+	path        string // absolute path of the project containing the .env file
 	deleted     bool
 	values      []*DataSet
 }

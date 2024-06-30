@@ -167,7 +167,7 @@ func saveProjects(connection *Connection, errorResult *error, wg *sync.WaitGroup
 	}
 	for _, project := range connection.projects {
 
-		if project.deleted{
+		if project.deleted {
 			query := "DELETE FROM projects WHERE projectID = ?"
 
 			_, err := tx.Exec(query, project.GetProjectID())
@@ -256,7 +256,7 @@ func saveEnvTemplates(connection *Connection, errorResult *error, wg *sync.WaitG
 			if templateEnv.deleted {
 				query := "DELETE FROM templateValues WHERE keyName = ? AND templateID = ?"
 
-				_, err := tx.Exec(query, template.GetTemplateID())
+				_, err := tx.Exec(query, templateEnv.GetKey(), template.GetTemplateID())
 
 				if err != nil {
 					tx.Rollback()

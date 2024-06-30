@@ -97,6 +97,18 @@ func (easy *EasyEnv) SaveDB() error {
 		return err
 	}
 
+	easy.currentConnection.projects, err = easy.LoadProjects()
+
+	if err != nil {
+		return err
+	}
+
+	easy.currentConnection.templates, err = easy.LoadTemplates()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

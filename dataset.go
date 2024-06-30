@@ -12,19 +12,19 @@ func NewDataSet(keyName, value string) *DataSet {
 
 // getters
 
-func (prjdta *DataSet) GetKey() string {
-	return prjdta.keyName
+func (dtaset *DataSet) GetKey() string {
+	return dtaset.keyName
 }
 
-func (prjdta *DataSet) GetValue() string {
-	return prjdta.value
+func (dtaset *DataSet) GetValue() string {
+	return dtaset.value
 }
 
 // setters
-func (prjdta *DataSet) SetValue(value string) {
-	prjdta.value = value
+func (dtaset *DataSet) SetValue(value string) {
+	dtaset.value = value
 }
 
-func (prjdta *DataSet) Remove() {
-	prjdta.deleted = true
+func (dtaset *DataSet) Remove() {
+	dtaset.deleted = true
 }

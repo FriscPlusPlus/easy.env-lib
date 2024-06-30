@@ -24,3 +24,7 @@ func (prjdta *DataSet) GetValue() string {
 func (prjdta *DataSet) SetValue(value string) {
 	prjdta.value = value
 }
+
+func (prjdta *DataSet) Remove() {
+	prjdta.deleted = true
+}

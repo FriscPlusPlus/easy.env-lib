@@ -91,6 +91,12 @@ func (easy *EasyEnv) SaveDB() error {
 		return err
 	}
 
+	err = easy.SaveAllProjectEnvironmentsToFile()
+
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -141,67 +147,42 @@ func (easy *EasyEnv) AddTemplate(templateName string) (*Template, error) {
 	return template, nil
 }
 
-func (easy *EasyEnv) RemoveProject(projectID string) error {
-
-	err := easy.isCurrentDBSet()
-
-	if err != nil {
-		return err
-	}
-
-	err = removeData(easy.currentConnection, "projects", "projectID", projectID)
-
-	if err != nil {
-		return err
-	}
-
-	tmp := make([]*Project, 0)
-	foundIndex, _, err := easy.GetProject(projectID)
-
-	if err != nil {
-		return err
-	}
-
-	tmp = append(tmp, easy.currentConnection.projects[:foundIndex]...)
-	tmp = append(tmp, easy.currentConnection.projects[foundIndex+1:]...)
-	easy.currentConnection.projects = tmp
-	return nil
-}
-
-func (easy *EasyEnv) RemoveTemplate(templateID string) error {
-
-	err := easy.isCurrentDBSet()
-
-	if err != nil {
-		return err
-	}
-
-	err = removeData(easy.currentConnection, "templates", "templateID", templateID)
-
-	if err != nil {
-		return err
-	}
-
-	tmp := make([]*Template, 0)
-	foundIndex := 0
-
-	for index, project := range easy.currentConnection.templates {
-		if project.templateID == templateID {
-			foundIndex = index
-			break
-		}
-	}
-
-	tmp = append(tmp, easy.currentConnection.templates[:foundIndex]...)
-	tmp = append(tmp, easy.currentConnection.templates[foundIndex+1:]...)
-	easy.currentConnection.templates = tmp
-
-	return nil
-}
-
 /*
  Getters
 */
+
+func (easy *EasyEnv) LoadProjects() ([]*Project, error) {
+	projects, err := selectProjects(easy.currentConnection)
+
+	if err != nil {
+		return nil, err
+	}
+
+	easy.currentConnection.projects = projects
+
+	for _, project := range projects {
+
+		err := project.LoadEnvironmentsFromFile()
+
+		if err != nil {
+			return projects, err
+		}
+	}
+
+	return projects, nil
+}
+
+func (easy *EasyEnv) LoadTemplates() ([]*Template, error) {
+	templates, err := selectTemplates(easy.currentConnection)
+
+	if err != nil {
+		return nil, err
+	}
+
+	easy.currentConnection.templates = templates
+
+	return templates, nil
+}
 
 func (easy *EasyEnv) GetProject(projectID string) (int, *Project, error) {
 

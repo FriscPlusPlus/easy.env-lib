@@ -2,9 +2,11 @@ package easyenv
 
 import (
 	"fmt"
-	"github.com/google/uuid"
 	"os"
 	"path"
+	"strings"
+
+	"github.com/google/uuid"
 )
 
 // constructor
@@ -48,6 +50,36 @@ func (prj *Project) GetEnvironmentByKey(keyName string) (*DataSet, error) {
 	return nil, fmt.Errorf("no enviorment found with the key %s", keyName)
 }
 
+func (prj *Project) LoadEnvironmentsFromFile() error {
+	envPath := path.Join(prj.path, ".env")
+	data, err := os.ReadFile(envPath)
+
+	if err != nil {
+		return err
+	}
+
+	enviorments := string(data)
+
+	enviorments = strings.ReplaceAll(enviorments, "\r", "")
+
+	envs := strings.Split(enviorments, "\n")
+
+	for _, env := range envs {
+
+		if len(env) == 0 { // in case the file has an empty line
+			continue
+		}
+
+		splittedEnv := strings.Split(env, "=")
+		envInstance := new(DataSet)
+		envInstance.keyName = splittedEnv[0]
+		envInstance.SetValue(splittedEnv[1])
+		prj.values = append(prj.values, envInstance)
+	}
+
+	return nil
+}
+
 // setters
 
 func (prj *Project) SetProjectName(value string) {
@@ -66,13 +98,17 @@ func (prj *Project) AddEnvrioment(keyName, value string) (*DataSet, error) {
 
 	_, ok := prj.GetEnvironmentByKey(keyName)
 
-	if ok != nil {
+	if ok == nil {
 		return nil, fmt.Errorf("an enviorment with the key %s already exists", keyName)
 	}
 
 	env := NewDataSet(keyName, value)
 	prj.values = append(prj.values, env)
 	return env, nil
+}
+
+func (prj *Project) Remove() {
+	prj.deleted = true
 }
 
 func (prj *Project) RemoveEnviorment(keyName string) {

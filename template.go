@@ -49,13 +49,21 @@ func (template *Template) AddEnvrioment(keyName, value string) (*DataSet, error)
 
 	_, ok := template.GetEnvironmentByKey(keyName)
 
-	if ok != nil {
+	if ok == nil {
 		return nil, fmt.Errorf("an enviorment with the key %s already exists", keyName)
 	}
 
 	env := NewDataSet(keyName, value)
 	template.values = append(template.values, env)
 	return env, nil
+}
+
+func (template *Template) Remove() {
+	template.deleted = true
+
+	for _, data := range template.values {
+		data.Remove()
+	}
 }
 
 func (template *Template) RemoveEnviorment(keyName string) {

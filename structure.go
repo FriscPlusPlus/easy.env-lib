@@ -22,16 +22,19 @@ type Project struct {
 	projectID   string
 	projectName string
 	path        string // abosule path of the project containing the .env file
+	deleted     bool
 	values      []*DataSet
 }
 
 type Template struct {
 	templateID   string
 	templateName string
+	deleted      bool
 	values       []*DataSet
 }
 
 type DataSet struct {
 	keyName string
 	value   string
+	deleted bool
 }

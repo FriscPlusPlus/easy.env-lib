@@ -232,6 +232,28 @@ func (easy *EasyEnv) LoadTemplates() ([]*Template, error) {
 	return templates, nil
 }
 
+func (easy *EasyEnv) AddTemplateEnvsToProject(templateID, projectID string) error {
+	_, project, err := easy.GetProject(projectID)
+
+	if err != nil {
+		return err
+	}
+
+	_, template, err := easy.GetTemplate(templateID)
+
+	if err != nil {
+		return err
+	}
+
+	envs := template.GetEnvironments()
+
+	for _, env := range envs {
+		project.AddEnvironment(env.GetKey(), env.GetValue())
+	}
+	
+	return nil
+}
+
 func (easy *EasyEnv) GetProject(projectID string) (int, *Project, error) {
 
 	err := easy.isCurrentDBSet()
